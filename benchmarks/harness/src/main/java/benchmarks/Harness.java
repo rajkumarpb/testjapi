@@ -43,7 +43,7 @@ public final class Harness {
 
     record Options(int requests, int concurrency, int routes, int basePort,
             List<String> workloads, List<String> apps, boolean gates, int readyTimeoutSeconds,
-            List<String> gatedWorkloads, boolean gateJooby) {
+            List<String> gatedWorkloads, boolean gateJooby, double vertxRatio) {
     }
 
     record Result(long startupMillis, double rps, double p50, double p95, double p99, long failures,
@@ -59,7 +59,8 @@ public final class Harness {
         List<Sample> samples = runAll(apps, options);
         printTable(samples);
         if (options.gates()) {
-            System.exit(gates(samples, options.gatedWorkloads(), options.gateJooby()) ? 0 : 1);
+            System.exit(gates(samples, options.gatedWorkloads(), options.gateJooby(),
+                    options.vertxRatio()) ? 0 : 1);
         }
     }
 
@@ -74,6 +75,7 @@ public final class Harness {
         List<String> apps = List.of("javapi", "javalin", "jooby", "vertx");
         List<String> gatedWorkloads = List.of("plaintext", "json", "routes");
         boolean gateJooby = true;
+        double vertxRatio = 0.9;
         for (int i = 0; i < args.size(); i++) {
             switch (args.get(i)) {
                 case "--requests" -> requests = Integer.parseInt(args.get(++i));
@@ -85,12 +87,13 @@ public final class Harness {
                 case "--apps" -> apps = List.of(args.get(++i).split(","));
                 case "--gated" -> gatedWorkloads = List.of(args.get(++i).split(","));
                 case "--no-gate-jooby" -> gateJooby = false;
+                case "--vertx-ratio" -> vertxRatio = Double.parseDouble(args.get(++i));
                 case "--no-gates" -> gates = false;
                 default -> throw new IllegalArgumentException("Unknown option: " + args.get(i));
             }
         }
         return new Options(requests, concurrency, routes, basePort, workloads, apps, gates,
-                readyTimeout, gatedWorkloads, gateJooby);
+                readyTimeout, gatedWorkloads, gateJooby, vertxRatio);
     }
 
     private static List<App> resolveApps(List<String> names) {
@@ -312,11 +315,13 @@ public final class Harness {
 
     /**
      * Enforce the §10.6 gates on the gated workloads: javapi must beat Javalin
-     * (and Jooby unless {@code gateJooby} is disabled) and stay within 10% of
-     * Vert.x. Workloads not in {@code gated} are reported as informational
-     * (never fail the build). Returns true when every gated workload passes.
+     * (and Jooby unless {@code gateJooby} is disabled) and stay within
+     * {@code vertxRatio} of Vert.x. Workloads not in {@code gated} are reported
+     * as informational (never fail the build). Returns true when every gated
+     * workload passes.
      */
-    static boolean gates(List<Sample> samples, List<String> gated, boolean gateJooby) {
+    static boolean gates(List<Sample> samples, List<String> gated, boolean gateJooby,
+            double vertxRatio) {
         boolean allPass = true;
         for (String workload : workloads(samples)) {
             boolean isGated = gated.contains(workload);
@@ -326,7 +331,7 @@ public final class Harness {
             double vertx = rps(samples, "vertx", workload);
             boolean beatJavalin = javapi >= javalin;
             boolean beatJooby = !gateJooby || javapi >= jooby;
-            boolean closeToVertx = vertx == 0 || javapi >= 0.9 * vertx;
+            boolean closeToVertx = vertx == 0 || javapi >= vertxRatio * vertx;
             boolean pass = beatJavalin && beatJooby && closeToVertx;
             if (isGated) {
                 allPass &= pass;
