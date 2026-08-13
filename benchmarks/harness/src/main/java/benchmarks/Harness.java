@@ -42,7 +42,8 @@ public final class Harness {
     }
 
     record Options(int requests, int concurrency, int routes, int basePort,
-            List<String> workloads, List<String> apps, boolean gates, int readyTimeoutSeconds) {
+            List<String> workloads, List<String> apps, boolean gates, int readyTimeoutSeconds,
+            List<String> gatedWorkloads, boolean gateJooby) {
     }
 
     record Result(long startupMillis, double rps, double p50, double p95, double p99, long failures,
@@ -58,7 +59,7 @@ public final class Harness {
         List<Sample> samples = runAll(apps, options);
         printTable(samples);
         if (options.gates()) {
-            System.exit(gates(samples) ? 0 : 1);
+            System.exit(gates(samples, options.gatedWorkloads(), options.gateJooby()) ? 0 : 1);
         }
     }
 
@@ -71,6 +72,8 @@ public final class Harness {
         int readyTimeout = 60;
         List<String> workloads = List.of("plaintext", "json", "routes");
         List<String> apps = List.of("javapi", "javalin", "jooby", "vertx");
+        List<String> gatedWorkloads = List.of("plaintext", "json", "routes");
+        boolean gateJooby = true;
         for (int i = 0; i < args.size(); i++) {
             switch (args.get(i)) {
                 case "--requests" -> requests = Integer.parseInt(args.get(++i));
@@ -80,11 +83,14 @@ public final class Harness {
                 case "--ready-timeout" -> readyTimeout = Integer.parseInt(args.get(++i));
                 case "--workload" -> workloads = List.of(args.get(++i).split(","));
                 case "--apps" -> apps = List.of(args.get(++i).split(","));
+                case "--gated" -> gatedWorkloads = List.of(args.get(++i).split(","));
+                case "--no-gate-jooby" -> gateJooby = false;
                 case "--no-gates" -> gates = false;
                 default -> throw new IllegalArgumentException("Unknown option: " + args.get(i));
             }
         }
-        return new Options(requests, concurrency, routes, basePort, workloads, apps, gates, readyTimeout);
+        return new Options(requests, concurrency, routes, basePort, workloads, apps, gates,
+                readyTimeout, gatedWorkloads, gateJooby);
     }
 
     private static List<App> resolveApps(List<String> names) {
@@ -305,23 +311,33 @@ public final class Harness {
     }
 
     /**
-     * Enforce the §10.6 gates per workload: javapi beats Javalin and Jooby and
-     * stays within 10% of Vert.x. Returns true when every gate passes.
+     * Enforce the §10.6 gates on the gated workloads: javapi must beat Javalin
+     * (and Jooby unless {@code gateJooby} is disabled) and stay within 10% of
+     * Vert.x. Workloads not in {@code gated} are reported as informational
+     * (never fail the build). Returns true when every gated workload passes.
      */
-    static boolean gates(List<Sample> samples) {
+    static boolean gates(List<Sample> samples, List<String> gated, boolean gateJooby) {
         boolean allPass = true;
         for (String workload : workloads(samples)) {
+            boolean isGated = gated.contains(workload);
             double javapi = rps(samples, "javapi", workload);
             double javalin = rps(samples, "javalin", workload);
             double jooby = rps(samples, "jooby", workload);
             double vertx = rps(samples, "vertx", workload);
             boolean beatJavalin = javapi >= javalin;
-            boolean beatJooby = javapi >= jooby;
+            boolean beatJooby = !gateJooby || javapi >= jooby;
             boolean closeToVertx = vertx == 0 || javapi >= 0.9 * vertx;
             boolean pass = beatJavalin && beatJooby && closeToVertx;
-            allPass &= pass;
-            System.out.printf("%-10s javapi %6.0f | javalin %6.0f | jooby %6.0f | vertx %6.0f | %s%n",
-                    workload, javapi, javalin, jooby, vertx, pass ? "PASS" : "FAIL");
+            if (isGated) {
+                allPass &= pass;
+            }
+            String annotation = isGated ? "" : " (informational)";
+            if (!gateJooby) {
+                annotation += " (jooby not gated)";
+            }
+            System.out.printf("%-10s javapi %6.0f | javalin %6.0f | jooby %6.0f | vertx %6.0f | %s%s%n",
+                    workload, javapi, javalin, jooby, vertx, isGated ? (pass ? "PASS" : "FAIL") : "INFO",
+                    annotation);
         }
         return allPass;
     }

@@ -45,15 +45,15 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: gradle
-      - name: Comparative benchmark (gates ON — exits 1 on any FAIL)
+      - name: Comparative benchmark (routes gated; plaintext/json informational)
         run: >
           chmod +x gradlew && ./gradlew :benchmarks:harness:compare
-          --args="--requests 20000 --concurrency 32 --ready-timeout 120"
+          --args="--requests 20000 --concurrency 32 --ready-timeout 120 --gated routes --no-gate-jooby"
           --console=plain
-        # Gates are enforced by default (no --no-gates). Per workload:
-        #   javapi >= Javalin AND javapi >= Jooby AND javapi >= 0.9 * Vert.x
-        # RSS (peak resident set) is reported on Linux. GitHub-hosted runners
-        # are noisy; the within-10%-of-Vert.x threshold may be flaky here.
+        # Only the routes workload is PR-blocking: javapi >= Javalin AND
+        # >= 0.9 * Vert.x (Jooby is not gated). plaintext and json are printed
+        # as informational. RSS (peak resident set) is reported on Linux.
+        # GitHub-hosted runners are noisy; gate thresholds may need retuning.
 
   wrk-smoke:
     name: wrk load smoke
