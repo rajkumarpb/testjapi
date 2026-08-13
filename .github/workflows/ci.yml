@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Build and run the full test suite
+        run: chmod +x gradlew && ./gradlew build --console=plain
+      - name: Upload test reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          if-no-files-found: ignore
+
+  bench-gates:
+    name: §10.6 performance gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Comparative benchmark (gates ON — exits 1 on any FAIL)
+        run: >
+          chmod +x gradlew && ./gradlew :benchmarks:harness:compare
+          --args="--requests 20000 --concurrency 32 --ready-timeout 120"
+          --console=plain
+        # Gates are enforced by default (no --no-gates). Per workload:
+        #   javapi >= Javalin AND javapi >= Jooby AND javapi >= 0.9 * Vert.x
+        # RSS (peak resident set) is reported on Linux. GitHub-hosted runners
+        # are noisy; the within-10%-of-Vert.x threshold may be flaky here.
+
+  wrk-smoke:
+    name: wrk load smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Install wrk
+        run: sudo apt-get update && sudo apt-get install -y wrk
+      - name: Boot javapi bench app and load it with wrk
+        run: |
+          set -e
+          chmod +x gradlew
+          ./gradlew :benchmarks:apps:javapi-app:run \
+            --args="--port 8080 --routes 100" --console=plain --no-daemon &
+          GRADLE_PID=$!
+          READY=""
+          for i in $(seq 1 90); do
+            if curl -sf -o /dev/null http://localhost:8080/plaintext; then
+              READY=yes
+              echo "app ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          if [ -z "$READY" ]; then
+            echo "app never became ready" >&2
+            kill $GRADLE_PID 2>/dev/null || true
+            exit 1
+          fi
+          echo "--- /plaintext ---"
+          wrk -t2 -c32 -d10s --latency http://localhost:8080/plaintext
+          echo "--- /json ---"
+          wrk -t2 -c32 -d10s --latency http://localhost:8080/json
+          echo "--- /r100 ---"
+          wrk -t2 -c32 -d10s --latency http://localhost:8080/r100
+          kill $GRADLE_PID 2>/dev/null || true
+          pkill -f demo.BenchApp 2>/dev/null || true
+          wait $GRADLE_PID 2>/dev/null || true
