@@ -55,6 +55,37 @@ jobs:
         # as informational. RSS (peak resident set) is reported on Linux.
         # GitHub-hosted runners are noisy; gate thresholds may need retuning.
 
+  bench-baseline:
+    # Linux is the measurement authority: the plan's detection-floor checkpoint
+    # (Task 2 Step 6) needs run-to-run spread below 5%, which this Windows dev
+    # box cannot provide (measured up to 36.8%). Trigger manually; a pass proves
+    # the instrument resolves improvements smaller than 5% on the platform where
+    # the real gates run. Fails when any javapi workload's spread exceeds 5%.
+    name: Benchmark baseline (spread floor)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: 3x compare with spread gate (javapi floor <= 5%)
+        run: |
+          set -e
+          chmod +x gradlew
+          ./gradlew :benchmarks:harness:compare \
+            --args="--requests 20000 --concurrency 32 --warmup 20000 --workload plaintext,json,routes --repeats 3 --max-spread 5" \
+            --console=plain 2>&1 | tee benchmark-baseline.log
+      - name: Upload baseline log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: benchmark-baseline.log
+          if-no-files-found: ignore
+
   wrk-smoke:
     name: wrk load smoke
     runs-on: ubuntu-latest

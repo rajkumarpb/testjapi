@@ -26,7 +26,7 @@ class SmokeTest {
         Harness.Options options = new Harness.Options(100, 8, 200, 200, 9400,
                 List.of("plaintext", "json", "routes", "params"),
                 List.of("javapi", "javalin", "jooby", "vertx"),
-                false, 30, List.of(), true, 0.9);
+                false, 30, List.of(), true, 0.9, 1, 0);
 
         List<Harness.Sample> samples = Harness.runAll(apps, options);
 

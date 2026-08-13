@@ -54,4 +54,42 @@ class LoadGeneratorTest {
         assertEquals(List.of("params"), options.workloads());
         assertEquals("http://localhost:9100/p1000/42", Harness.url("params", 9100, 1000));
     }
+
+    @Test
+    void parseOptionsAcceptsRepeatsAndMaxSpread() {
+        Harness.Options options = Harness.parseOptions(
+                List.of("--repeats", "3", "--max-spread", "5"));
+        assertEquals(3, options.repeats());
+        assertEquals(5.0, options.maxSpread(), 0.001);
+    }
+
+    @Test
+    void spreadsComputeMinMaxAndSpreadPct() {
+        Harness.Result r1 = new Harness.Result(0, 1000, 0, 0, 0, 0, -1);
+        Harness.Result r2 = new Harness.Result(0, 1200, 0, 0, 0, 0, -1);
+        List<List<Harness.Sample>> runs = List.of(
+                List.of(new Harness.Sample("javapi", "plaintext", r1, 0)),
+                List.of(new Harness.Sample("javapi", "plaintext", r2, 0)),
+                List.of(new Harness.Sample("javapi", "plaintext", r1, 0)));
+
+        Harness.Spread spread = Harness.spreads(runs).get(0);
+
+        assertEquals(1000.0, spread.min(), 0.001);
+        assertEquals(1200.0, spread.max(), 0.001);
+        assertEquals(20.0, spread.spreadPct(), 0.001);
+    }
+
+    @Test
+    void spreadGateFailsWhenJavapiSpreadExceedsLimit() {
+        Harness.Result slow = new Harness.Result(0, 1000, 0, 0, 0, 0, -1);
+        Harness.Result fast = new Harness.Result(0, 1200, 0, 0, 0, 0, -1);
+        List<Harness.Spread> spread = List.of(
+                new Harness.Spread("javapi", "plaintext", 1000, 1200, 20.0),
+                new Harness.Spread("vertx", "json", 1000, 2000, 100.0));
+
+        assertTrue(!Harness.spreadGate(spread, 5.0),
+                "javapi spread above the limit must fail the gate");
+        assertTrue(Harness.spreadGate(spread, 25.0),
+                "javapi spread within the limit must pass even with a noisy competitor");
+    }
 }

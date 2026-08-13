@@ -11,7 +11,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -40,7 +42,8 @@ public final class Harness {
 
     record Options(int requests, int concurrency, int warmup, int routes, int basePort,
             List<String> workloads, List<String> apps, boolean gates, int readyTimeoutSeconds,
-            List<String> gatedWorkloads, boolean gateJooby, double vertxRatio) {
+            List<String> gatedWorkloads, boolean gateJooby, double vertxRatio,
+            int repeats, double maxSpread) {
     }
 
     record Result(long startupMillis, double rps, double p50, double p95, double p99, long failures,
@@ -53,6 +56,21 @@ public final class Harness {
     public static void main(String[] args) throws Exception {
         Options options = parseOptions(List.of(args));
         List<App> apps = resolveApps(options.apps());
+        if (options.repeats() > 1) {
+            List<List<Sample>> runs = new ArrayList<>();
+            for (int r = 0; r < options.repeats(); r++) {
+                System.out.println("=== Repeat " + (r + 1) + "/" + options.repeats() + " ===");
+                List<Sample> samples = runAll(apps, options);
+                printTable(samples);
+                runs.add(samples);
+            }
+            List<Spread> spread = spreads(runs);
+            printSpreadTable(spread);
+            if (options.maxSpread() > 0) {
+                System.exit(spreadGate(spread, options.maxSpread()) ? 0 : 1);
+            }
+            return;
+        }
         List<Sample> samples = runAll(apps, options);
         printTable(samples);
         if (options.gates()) {
@@ -74,6 +92,8 @@ public final class Harness {
         List<String> gatedWorkloads = List.of("plaintext", "json", "routes");
         boolean gateJooby = true;
         double vertxRatio = 0.9;
+        int repeats = 1;
+        double maxSpread = 0;
         for (int i = 0; i < args.size(); i++) {
             switch (args.get(i)) {
                 case "--requests" -> requests = Integer.parseInt(args.get(++i));
@@ -88,11 +108,13 @@ public final class Harness {
                 case "--no-gate-jooby" -> gateJooby = false;
                 case "--vertx-ratio" -> vertxRatio = Double.parseDouble(args.get(++i));
                 case "--no-gates" -> gates = false;
+                case "--repeats" -> repeats = Integer.parseInt(args.get(++i));
+                case "--max-spread" -> maxSpread = Double.parseDouble(args.get(++i));
                 default -> throw new IllegalArgumentException("Unknown option: " + args.get(i));
             }
         }
         return new Options(requests, concurrency, warmup, routes, basePort, workloads, apps, gates,
-                readyTimeout, gatedWorkloads, gateJooby, vertxRatio);
+                readyTimeout, gatedWorkloads, gateJooby, vertxRatio, repeats, maxSpread);
     }
 
     private static List<App> resolveApps(List<String> names) {
@@ -408,5 +430,62 @@ public final class Harness {
                 .findFirst()
                 .map(s -> s.result().rps())
                 .orElse(0.0);
+    }
+
+    record Spread(String app, String workload, double min, double max, double spreadPct) {
+    }
+
+    /** Min/max req/s and spread % per app+workload across {@code repeats} runs. */
+    static List<Spread> spreads(List<List<Sample>> runs) {
+        Map<String, List<Double>> byKey = new java.util.LinkedHashMap<>();
+        for (List<Sample> run : runs) {
+            for (Sample sample : run) {
+                byKey.computeIfAbsent(sample.app() + "|" + sample.workload(),
+                        k -> new ArrayList<>()).add(sample.result().rps());
+            }
+        }
+        List<Spread> result = new ArrayList<>();
+        for (Map.Entry<String, List<Double>> entry : byKey.entrySet()) {
+            List<Double> values = entry.getValue();
+            double min = values.stream().mapToDouble(Double::doubleValue).min().orElse(0);
+            double max = values.stream().mapToDouble(Double::doubleValue).max().orElse(0);
+            String[] parts = entry.getKey().split("\\|", 2);
+            result.add(new Spread(parts[0], parts[1], min, max,
+                    min == 0 ? 0 : (max - min) / min * 100.0));
+        }
+        result.sort(Comparator.comparing(Spread::app).thenComparing(Spread::workload));
+        return result;
+    }
+
+    private static void printSpreadTable(List<Spread> spread) {
+        String header = String.format("%-8s %-10s %-10s %-10s %-8s", "app", "workload",
+                "min req/s", "max req/s", "spread%");
+        System.out.println(header);
+        System.out.println("-".repeat(header.length()));
+        for (Spread s : spread) {
+            System.out.printf("%-8s %-10s %-10.0f %-10.0f %-8.1f%n", s.app(), s.workload(),
+                    s.min(), s.max(), s.spreadPct());
+        }
+    }
+
+    /**
+     * Enforce the detection-floor checkpoint on the app this plan optimizes:
+     * every javapi workload's run-to-run spread must stay within
+     * {@code maxSpreadPct}%, otherwise the instrument cannot resolve the
+     * improvements Phases 2-5 chase. Competitor spreads are reported but not
+     * gated (GitHub runners are noisy for the other frameworks).
+     */
+    static boolean spreadGate(List<Spread> spread, double maxSpreadPct) {
+        boolean pass = true;
+        for (Spread s : spread) {
+            if (!s.app().equals("javapi")) {
+                continue;
+            }
+            boolean ok = s.spreadPct() <= maxSpreadPct;
+            pass &= ok;
+            System.out.printf("%-10s %-10s spread %5.1f%% (limit %.1f%%) %s%n", s.app(),
+                    s.workload(), s.spreadPct(), maxSpreadPct, ok ? "PASS" : "FAIL");
+        }
+        return pass;
     }
 }
