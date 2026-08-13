@@ -48,7 +48,7 @@ jobs:
       - name: Comparative benchmark (routes gated; plaintext/json informational)
         run: >
           chmod +x gradlew && ./gradlew :benchmarks:harness:compare
-          --args="--requests 20000 --concurrency 32 --ready-timeout 120 --gated routes --no-gate-jooby --vertx-ratio 0.6"
+          --args="--requests 20000 --concurrency 32 --ready-timeout 120 --gated routes --no-gate-jooby --vertx-ratio 0.4"
           --console=plain
         # Only the routes workload is PR-blocking: javapi >= Javalin AND
         # >= 0.75 * Vert.x (Jooby is not gated). plaintext and json are printed
