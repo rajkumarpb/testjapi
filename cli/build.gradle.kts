@@ -15,11 +15,7 @@ tasks.named<CreateStartScripts>("startScripts") {
 }
 
 tasks.processResources {
-    doLast {
-        val out = layout.buildDirectory.file("resources/main/javapi/cli/version.txt").get().asFile
-        out.parentFile.mkdirs()
-        out.writeText("${project.version}\n")
-    }
+    expand(mapOf("version" to project.version))
 }
 
 dependencies {
