@@ -10,11 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -41,7 +38,7 @@ public final class Harness {
     record App(String name, String mainClass, String classpath) {
     }
 
-    record Options(int requests, int concurrency, int routes, int basePort,
+    record Options(int requests, int concurrency, int warmup, int routes, int basePort,
             List<String> workloads, List<String> apps, boolean gates, int readyTimeoutSeconds,
             List<String> gatedWorkloads, boolean gateJooby, double vertxRatio) {
     }
@@ -67,6 +64,7 @@ public final class Harness {
     static Options parseOptions(List<String> args) {
         int requests = 10_000;
         int concurrency = 32;
+        int warmup = 10_000;
         int routes = 1_000;
         int basePort = 9100;
         boolean gates = true;
@@ -80,6 +78,7 @@ public final class Harness {
             switch (args.get(i)) {
                 case "--requests" -> requests = Integer.parseInt(args.get(++i));
                 case "--concurrency" -> concurrency = Integer.parseInt(args.get(++i));
+                case "--warmup" -> warmup = Integer.parseInt(args.get(++i));
                 case "--routes" -> routes = Integer.parseInt(args.get(++i));
                 case "--base-port" -> basePort = Integer.parseInt(args.get(++i));
                 case "--ready-timeout" -> readyTimeout = Integer.parseInt(args.get(++i));
@@ -92,7 +91,7 @@ public final class Harness {
                 default -> throw new IllegalArgumentException("Unknown option: " + args.get(i));
             }
         }
-        return new Options(requests, concurrency, routes, basePort, workloads, apps, gates,
+        return new Options(requests, concurrency, warmup, routes, basePort, workloads, apps, gates,
                 readyTimeout, gatedWorkloads, gateJooby, vertxRatio);
     }
 
@@ -121,7 +120,7 @@ public final class Harness {
             List<Result> results = new ArrayList<>();
             for (String workload : options.workloads()) {
                 results.add(load(url(workload, port, options.routes()),
-                        options.requests(), options.concurrency()));
+                        options.requests(), options.concurrency(), options.warmup()));
             }
             long maxRssKb = isWindows() ? -1 : readRssKb(process.pid());
             List<String> workloads = options.workloads();
@@ -139,16 +138,17 @@ public final class Harness {
         return samples;
     }
 
-    private static String url(String workload, int port, int routes) {
+    static String url(String workload, int port, int routes) {
         return switch (workload) {
             case "plaintext" -> "http://localhost:" + port + "/plaintext";
             case "json" -> "http://localhost:" + port + "/json";
             case "routes" -> "http://localhost:" + port + "/r" + routes;
+            case "params" -> "http://localhost:" + port + "/p" + routes + "/42";
             default -> throw new IllegalArgumentException("Unknown workload: " + workload);
         };
     }
 
-    private static Process spawn(App app, int port, int routes) throws IOException {
+    static Process spawn(App app, int port, int routes) throws IOException {
         String java = Path.of(System.getProperty("java.home"),
                 "bin", "java" + (isWindows() ? ".exe" : "")).toString();
         List<String> command = new ArrayList<>();
@@ -216,7 +216,14 @@ public final class Harness {
         throw new IllegalStateException("Timed out waiting for " + url + " to become ready");
     }
 
-    static Result load(String url, int requests, int concurrency) {
+    /**
+     * Issue {@code warmup} un-measured requests to let C2 compile the server's
+     * hot path, then {@code requests} measured requests across {@code
+     * concurrency} fixed workers. Each worker owns a preallocated primitive
+     * latency array, so the measurement path has no lock, no boxing and no
+     * per-request allocation.
+     */
+    static Result load(String url, int requests, int concurrency, int warmup) {
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -224,42 +231,86 @@ public final class Harness {
                 .GET()
                 .timeout(Duration.ofSeconds(30))
                 .build();
-        for (int i = 0; i < 200; i++) {
-            try {
-                client.send(request, HttpResponse.BodyHandlers.discarding());
-            } catch (Exception e) {
-                throw new IllegalStateException("Benchmark request failed: " + e.getMessage(), e);
-            }
-        }
-        ExecutorService pool = Executors.newFixedThreadPool(concurrency,
-                Thread.ofVirtual().name("bench-", 0).factory());
-        List<Long> latencies = new ArrayList<>();
+
+        drive(client, request, warmup, concurrency, null, new AtomicLong());
+
+        int perWorker = (requests + concurrency - 1) / concurrency;
+        long[][] samples = new long[concurrency][perWorker];
         AtomicLong failures = new AtomicLong();
         long start = System.nanoTime();
-        List<CompletableFuture<Void>> futures = new ArrayList<>(requests);
-        for (int i = 0; i < requests; i++) {
-            futures.add(CompletableFuture.runAsync(() -> {
-                long t0 = System.nanoTime();
-                try {
-                    client.send(request, HttpResponse.BodyHandlers.discarding());
-                    synchronized (latencies) {
-                        latencies.add(System.nanoTime() - t0);
-                    }
-                } catch (Exception e) {
-                    failures.incrementAndGet();
-                }
-            }, pool));
-        }
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        int issued = drive(client, request, requests, concurrency, samples, failures);
         double elapsedSec = (System.nanoTime() - start) / 1e9;
-        pool.shutdown();
-        List<Long> sorted = new ArrayList<>(latencies);
-        sorted.sort(Comparator.naturalOrder());
-        long p50 = sorted.isEmpty() ? 0 : sorted.get(sorted.size() / 2);
-        long p95 = sorted.isEmpty() ? 0 : sorted.get((int) Math.min(sorted.size() - 1, sorted.size() * 0.95));
-        long p99 = sorted.isEmpty() ? 0 : sorted.get((int) Math.min(sorted.size() - 1, sorted.size() * 0.99));
-        return new Result(0, requests / elapsedSec,
-                p50 / 1e6, p95 / 1e6, p99 / 1e6, failures.get(), -1);
+
+        long[] sorted = new long[issued - (int) failures.get()];
+        int at = 0;
+        for (long[] worker : samples) {
+            for (long sample : worker) {
+                if (sample > 0 && at < sorted.length) {
+                    sorted[at++] = sample;
+                }
+            }
+        }
+        sorted = Arrays.copyOf(sorted, at);
+        Arrays.sort(sorted);
+        return new Result(0, issued / elapsedSec,
+                percentile(sorted, 0.50), percentile(sorted, 0.95), percentile(sorted, 0.99),
+                failures.get(), -1);
+    }
+
+    /**
+     * Run {@code total} requests across {@code concurrency} platform threads,
+     * distributing the remainder so exactly {@code total} requests are issued.
+     * When {@code samples} is non-null, worker {@code w} writes its latencies
+     * into {@code samples[w]}. Returns the number of requests actually issued.
+     */
+    private static int drive(HttpClient client, HttpRequest request, int total, int concurrency,
+            long[][] samples, AtomicLong failures) {
+        if (total <= 0) {
+            return 0;
+        }
+        int base = total / concurrency;
+        int extra = total % concurrency;
+        Thread[] workers = new Thread[concurrency];
+        for (int w = 0; w < concurrency; w++) {
+            final int worker = w;
+            final int count = base + (w < extra ? 1 : 0);
+            workers[w] = Thread.ofPlatform().name("bench-" + w).unstarted(() -> {
+                for (int i = 0; i < count; i++) {
+                    long t0 = System.nanoTime();
+                    try {
+                        client.send(request, HttpResponse.BodyHandlers.discarding());
+                        if (samples != null) {
+                            samples[worker][i] = System.nanoTime() - t0;
+                        }
+                    } catch (Exception e) {
+                        failures.incrementAndGet();
+                    }
+                }
+            });
+            workers[w].start();
+        }
+        for (Thread worker : workers) {
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return total;
+    }
+
+    private static double percentile(long[] sortedNanos, double fraction) {
+        if (sortedNanos.length == 0) {
+            return 0;
+        }
+        int index = (int) Math.ceil(fraction * sortedNanos.length) - 1;
+        if (index < 0) {
+            index = 0;
+        }
+        if (index >= sortedNanos.length) {
+            index = sortedNanos.length - 1;
+        }
+        return sortedNanos[index] / 1e6;
     }
 
     /**

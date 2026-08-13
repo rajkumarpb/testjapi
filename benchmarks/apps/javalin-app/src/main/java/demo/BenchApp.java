@@ -32,6 +32,7 @@ public final class BenchApp {
         for (int i = 1; i <= routes; i++) {
             final int n = i;
             app.get("/r" + n, ctx -> ctx.json(Map.of("id", n)));
+            app.get("/p" + n + "/{id}", ctx -> ctx.json(Map.of("route", n, "id", ctx.pathParam("id"))));
         }
 
         app.start(port);

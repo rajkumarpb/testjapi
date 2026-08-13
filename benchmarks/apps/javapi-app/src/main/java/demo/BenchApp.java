@@ -34,6 +34,7 @@ public final class BenchApp {
         for (int i = 1; i <= routes; i++) {
             final int n = i;
             app.get("/r" + n, request -> Map.of("id", n));
+            app.get("/p" + n + "/:id", request -> Map.of("route", n, "id", request.pathParam("id")));
         }
 
         try {

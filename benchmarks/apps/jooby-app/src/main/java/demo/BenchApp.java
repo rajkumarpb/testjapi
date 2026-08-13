@@ -36,6 +36,7 @@ public final class BenchApp {
             for (int i = 1; i <= routeCount; i++) {
                 final int n = i;
                 app.get("/r" + n, ctx -> Map.of("id", n));
+                app.get("/p" + n + "/{id}", ctx -> Map.of("route", n, "id", ctx.path("id").value()));
             }
         });
     }

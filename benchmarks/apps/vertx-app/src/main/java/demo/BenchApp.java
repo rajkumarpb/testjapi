@@ -38,6 +38,9 @@ public final class BenchApp {
             router.get("/r" + n).handler(ctx -> ctx.response()
                     .putHeader("Content-Type", "application/json")
                     .end(new JsonObject().put("id", n).encode()));
+            router.get("/p" + n + "/:id").handler(ctx -> ctx.response()
+                    .putHeader("Content-Type", "application/json")
+                    .end(new JsonObject().put("route", n).put("id", ctx.pathParam("id")).encode()));
         }
 
         vertx.createHttpServer().requestHandler(router).listen(port);
