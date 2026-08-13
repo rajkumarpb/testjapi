@@ -10,22 +10,21 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import javax.sql.DataSource;
-import javapi.annotations.blocking;
-import javapi.annotations.component;
-import javapi.annotations.delete;
-import javapi.annotations.eventloop;
-import javapi.annotations.exception;
+import javapi.annotations.Blocking;
+import javapi.annotations.Component;
+import javapi.annotations.Delete;
+import javapi.annotations.EventLoop;
+import javapi.annotations.ExceptionHandler;
+import javapi.annotations.Get;
 import javapi.annotations.HttpMethod;
-import javapi.annotations.get;
-import javapi.annotations.middleware;
-import javapi.annotations.patch;
-import javapi.annotations.post;
-import javapi.annotations.put;
-import javapi.annotations.route;
-import javapi.annotations.transaction;
+import javapi.annotations.Middleware;
+import javapi.annotations.Patch;
+import javapi.annotations.Post;
+import javapi.annotations.Put;
+import javapi.annotations.Route;
+import javapi.annotations.Transaction;
 import javapi.config.Config;
 import javapi.di.DI;
-import javapi.middleware.Middleware;
 import javapi.params.ParamBinder;
 import javapi.request.Response;
 
@@ -46,16 +45,16 @@ public final class RouteScanner {
     }
 
     private static void scanClass(Router router, Class<?> clazz, DI di) {
-        if (clazz.isAnnotationPresent(component.class)) {
+        if (clazz.isAnnotationPresent(Component.class)) {
             di.registerComponent(clazz);
         }
-        if (clazz.isAnnotationPresent(middleware.class)) {
+        if (clazz.isAnnotationPresent(Middleware.class)) {
             registerMiddleware(router, clazz, di);
         }
-        route classRoute = clazz.getAnnotation(route.class);
+        Route classRoute = clazz.getAnnotation(Route.class);
         String prefix = classRoute == null ? null : classRoute.value();
         for (Method method : clazz.getMethods()) {
-            if (method.isAnnotationPresent(exception.class)) {
+            if (method.isAnnotationPresent(ExceptionHandler.class)) {
                 registerExceptionMapper(router, clazz, method, di);
                 continue;
             }
@@ -72,30 +71,30 @@ public final class RouteScanner {
 
     private static void registerMiddleware(Router router, Class<?> clazz, DI di) {
         Object instance = controllerInstance(clazz, di);
-        if (instance instanceof Middleware middleware) {
+        if (instance instanceof javapi.middleware.Middleware middleware) {
             router.use(middleware);
             return;
         }
         boolean registered = false;
         for (Method method : clazz.getMethods()) {
-            if (Middleware.class.isAssignableFrom(method.getReturnType())) {
+            if (javapi.middleware.Middleware.class.isAssignableFrom(method.getReturnType())) {
                 MethodHandle handle = unreflect(method, instance);
-                router.use((Middleware) invoke(handle, new Object[0]));
+                router.use((javapi.middleware.Middleware) invoke(handle, new Object[0]));
                 registered = true;
             }
         }
         if (!registered) {
-            throw new IllegalStateException("@middleware class " + clazz.getName()
-                    + " must implement " + Middleware.class.getName()
+            throw new IllegalStateException("@Middleware class " + clazz.getName()
+                    + " must implement " + javapi.middleware.Middleware.class.getName()
                     + " or expose a public method returning it");
         }
     }
 
     private static void registerExceptionMapper(Router router, Class<?> clazz, Method method, DI di) {
-        exception annotation = method.getAnnotation(exception.class);
+        ExceptionHandler annotation = method.getAnnotation(ExceptionHandler.class);
         if (method.getParameterTypes().length != 1) {
             throw new IllegalStateException(
-                    "@exception method " + clazz.getName() + "." + method.getName()
+                    "@ExceptionHandler method " + clazz.getName() + "." + method.getName()
                             + " must accept exactly one exception parameter");
         }
         Object instance = controllerInstance(clazz, di);
@@ -110,12 +109,12 @@ public final class RouteScanner {
     }
 
     private static ExecutionMode executionOf(Method method) {
-        boolean inline = method.isAnnotationPresent(eventloop.class);
-        boolean blocking = method.isAnnotationPresent(blocking.class);
+        boolean inline = method.isAnnotationPresent(EventLoop.class);
+        boolean blocking = method.isAnnotationPresent(Blocking.class);
         if (inline && blocking) {
             throw new IllegalStateException(
                     "Method " + method.getDeclaringClass().getName() + "." + method.getName()
-                            + " cannot have both @eventloop and @blocking");
+                            + " cannot have both @EventLoop and @Blocking");
         }
         if (inline) {
             return ExecutionMode.EVENT_LOOP;
@@ -130,7 +129,7 @@ public final class RouteScanner {
         Object instance = controllerInstance(clazz, di);
         MethodHandle handle = unreflect(method, instance);
         List<Integer> depends = binder.dependsPositions();
-        if (method.isAnnotationPresent(transaction.class)) {
+        if (method.isAnnotationPresent(Transaction.class)) {
             return transactional(handle, binder, depends, di);
         }
         return request -> {
@@ -197,7 +196,7 @@ public final class RouteScanner {
     }
 
     private static Object controllerInstance(Class<?> clazz, DI di) {
-        if (clazz.isAnnotationPresent(component.class) || di.isRegistered(clazz)) {
+        if (clazz.isAnnotationPresent(Component.class) || di.isRegistered(clazz)) {
             return di.resolveSingleton(clazz);
         }
         try {
@@ -216,47 +215,47 @@ public final class RouteScanner {
     }
 
     private static Annotation findRouteAnnotation(Method method) {
-        if (method.isAnnotationPresent(get.class)) {
-            return method.getAnnotation(get.class);
+        if (method.isAnnotationPresent(Get.class)) {
+            return method.getAnnotation(Get.class);
         }
-        if (method.isAnnotationPresent(post.class)) {
-            return method.getAnnotation(post.class);
+        if (method.isAnnotationPresent(Post.class)) {
+            return method.getAnnotation(Post.class);
         }
-        if (method.isAnnotationPresent(put.class)) {
-            return method.getAnnotation(put.class);
+        if (method.isAnnotationPresent(Put.class)) {
+            return method.getAnnotation(Put.class);
         }
-        if (method.isAnnotationPresent(delete.class)) {
-            return method.getAnnotation(delete.class);
+        if (method.isAnnotationPresent(Delete.class)) {
+            return method.getAnnotation(Delete.class);
         }
-        if (method.isAnnotationPresent(patch.class)) {
-            return method.getAnnotation(patch.class);
+        if (method.isAnnotationPresent(Patch.class)) {
+            return method.getAnnotation(Patch.class);
         }
-        if (method.isAnnotationPresent(route.class)) {
-            return method.getAnnotation(route.class);
+        if (method.isAnnotationPresent(Route.class)) {
+            return method.getAnnotation(Route.class);
         }
         return null;
     }
 
     private static String pathOf(Annotation annotation) {
         return switch (annotation) {
-            case get a -> a.value();
-            case post a -> a.value();
-            case put a -> a.value();
-            case delete a -> a.value();
-            case patch a -> a.value();
-            case route a -> a.value();
+            case Get a -> a.value();
+            case Post a -> a.value();
+            case Put a -> a.value();
+            case Delete a -> a.value();
+            case Patch a -> a.value();
+            case Route a -> a.value();
             default -> throw new IllegalStateException("Unexpected annotation " + annotation);
         };
     }
 
     private static Set<HttpMethod> methodsOf(Annotation annotation) {
         return switch (annotation) {
-            case get ignored -> Set.of(HttpMethod.GET);
-            case post ignored -> Set.of(HttpMethod.POST);
-            case put ignored -> Set.of(HttpMethod.PUT);
-            case delete ignored -> Set.of(HttpMethod.DELETE);
-            case patch ignored -> Set.of(HttpMethod.PATCH);
-            case route r -> r.methods().length == 0
+            case Get ignored -> Set.of(HttpMethod.GET);
+            case Post ignored -> Set.of(HttpMethod.POST);
+            case Put ignored -> Set.of(HttpMethod.PUT);
+            case Delete ignored -> Set.of(HttpMethod.DELETE);
+            case Patch ignored -> Set.of(HttpMethod.PATCH);
+            case Route r -> r.methods().length == 0
                     ? EnumSet.allOf(HttpMethod.class)
                     : Set.of(r.methods());
             default -> throw new IllegalStateException("Unexpected annotation " + annotation);

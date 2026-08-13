@@ -9,7 +9,7 @@ properties file.
 > - `application.properties` and `application-{profile}.properties`
 > - The precedence chain (what wins)
 > - `server.*` settings and relaxed binding
-> - Injecting values with `@value`
+> - Injecting values with `@Value`
 
 ## Property files
 
@@ -60,7 +60,7 @@ Keys are normalized, so one logical setting has several spellings:
 | `server.host`           | bind address (default `localhost`) |
 | `server.port`           | port (default `8080`)              |
 | `server.workers`        | worker pool size                   |
-| `server.eventLoopInline`| dispatch `@eventloop` routes on the event loop |
+| `server.eventLoopInline`| dispatch `@EventLoop` routes on the event loop |
 | `server.logRequests`    | per-request logging                |
 
 Each also has a fluent setter (`app.port(8000)`) that takes precedence over all
@@ -76,21 +76,21 @@ JavAPI.create()
 
 ## Reading config in code
 
-Inject values into parameters and record components with `@value`:
+Inject values into parameters and record components with `@Value`:
 
 ```java
-import javapi.annotations.value;
+import javapi.annotations.Value;
 
-@get("/info")
+@Get("/info")
 public Map<String, String> info(
-        @value("app.title") String title,
-        @value("app.workers") @optional Integer workers) {
+        @Value("app.title") String title,
+        @Value("app.workers") @Optional Integer workers) {
     return Map.of("title", title, "workers", workers == null ? "n/a" : workers.toString());
 }
 ```
 
-A `@value` with no matching value is a missing-parameter error (`422`-style);
-mark it `@optional` or use `Optional<Integer>` when a default should be empty.
+A `@Value` with no matching value is a missing-parameter error (`422`-style);
+mark it `@Optional` or use `Optional<Integer>` when a default should be empty.
 
 Or read the `Config` object directly:
 

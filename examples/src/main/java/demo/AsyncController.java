@@ -2,20 +2,20 @@ package demo;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import javapi.annotations.eventloop;
-import javapi.annotations.get;
-import javapi.annotations.route;
+import javapi.annotations.EventLoop;
+import javapi.annotations.Get;
+import javapi.annotations.Route;
 
-@route("/async")
+@Route("/async")
 public class AsyncController {
 
-    @get("/inline")
-    @eventloop
+    @Get("/inline")
+    @EventLoop
     public Map<String, String> inline() {
         return Map.of("mode", "eventloop");
     }
 
-    @get("/future")
+    @Get("/future")
     public CompletableFuture<Map<String, String>> future() {
         return CompletableFuture.supplyAsync(() -> Map.of("async", "true"));
     }

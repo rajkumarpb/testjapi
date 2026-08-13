@@ -1,29 +1,29 @@
 package javapi.ditestroutes;
 
 import java.util.Map;
-import javapi.annotations.depends;
-import javapi.annotations.get;
-import javapi.annotations.inject;
-import javapi.annotations.query;
-import javapi.annotations.route;
+import javapi.annotations.Depends;
+import javapi.annotations.Get;
+import javapi.annotations.Inject;
+import javapi.annotations.Query;
+import javapi.annotations.Route;
 
-@route("/di")
+@Route("/di")
 public class DiController {
 
     private final Counter counter;
 
-    @inject
+    @Inject
     public DiController(Counter counter) {
         this.counter = counter;
     }
 
-    @get("/greet")
-    public Map<String, Object> greet(@depends Greeter greeter, @query("name") String name) {
+    @Get("/greet")
+    public Map<String, Object> greet(@Depends Greeter greeter, @Query("name") String name) {
         return Map.of("greeting", greeter.greet(name), "counter", counter.describe());
     }
 
-    @get("/scoped")
-    public String scoped(@depends RequestScoped scoped) {
+    @Get("/scoped")
+    public String scoped(@Depends RequestScoped scoped) {
         return scoped.id();
     }
 }

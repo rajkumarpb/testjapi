@@ -6,7 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER, ElementType.FIELD, ElementType.RECORD_COMPONENT})
-public @interface value {
-    String value();
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface Route {
+    String value() default "/";
+
+    HttpMethod[] methods() default {};
 }

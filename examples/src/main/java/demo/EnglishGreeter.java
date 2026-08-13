@@ -1,8 +1,8 @@
 package demo;
 
-import javapi.annotations.component;
+import javapi.annotations.Component;
 
-@component
+@Component
 public class EnglishGreeter implements Greeter {
 
     @Override

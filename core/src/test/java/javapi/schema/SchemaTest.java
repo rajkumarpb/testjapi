@@ -9,16 +9,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import javapi.annotations.email;
-import javapi.annotations.maxlength;
-import javapi.annotations.min;
-import javapi.annotations.minlength;
+import javapi.annotations.Email;
+import javapi.annotations.MaxLength;
+import javapi.annotations.Min;
+import javapi.annotations.MinLength;
 
 class SchemaTest {
 
     record User(
-            @minlength(2) @maxlength(20) @email String name,
-            @min(1) int age,
+            @MinLength(2) @MaxLength(20) @Email String name,
+            @Min(1) int age,
             List<String> tags,
             Optional<String> nickname) {
     }

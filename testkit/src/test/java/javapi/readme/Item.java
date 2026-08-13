@@ -1,14 +1,14 @@
 package javapi.readme;
 
-import javapi.annotations.email;
-import javapi.annotations.max;
-import javapi.annotations.maxlength;
-import javapi.annotations.min;
-import javapi.annotations.minlength;
-import javapi.annotations.optional;
+import javapi.annotations.Email;
+import javapi.annotations.Max;
+import javapi.annotations.MaxLength;
+import javapi.annotations.Min;
+import javapi.annotations.MinLength;
+import javapi.annotations.Optional;
 
 public record Item(
-        @minlength(2) @maxlength(20) String name,
-        @min(1) @max(1000) int quantity,
-        @email @optional String supplierEmail) {
+        @MinLength(2) @MaxLength(20) String name,
+        @Min(1) @Max(1000) int quantity,
+        @Email @Optional String supplierEmail) {
 }

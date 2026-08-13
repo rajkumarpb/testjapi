@@ -6,7 +6,7 @@ except the request body (that's the next chapter).
 
 > **What you'll learn**
 >
-> - `@path`, `@query`, `@header`, `@cookie` binding
+> - `@Path`, `@Query`, `@Header`, `@Cookie` binding
 > - Type conversion and how to make parameters optional
 > - Injecting the raw `Request`
 
@@ -14,22 +14,22 @@ except the request body (that's the next chapter).
 
 | Annotation  | Source         | Example                                    |
 |-------------|----------------|--------------------------------------------|
-| `@path`     | URL path segment | `@get("/:itemId")` + `@path int itemId`   |
-| `@query`    | Query string   | `@query("q") String q`                     |
-| `@header`   | Request header | `@header("user-agent") String ua`          |
-| `@cookie`   | Cookie         | `@cookie("session") String session`        |
+| `@Path`     | URL path segment | `@Get("/:itemId")` + `@Path int itemId`   |
+| `@Query`    | Query string   | `@Query("q") String q`                     |
+| `@Header`   | Request header | `@Header("user-agent") String ua`          |
+| `@Cookie`   | Cookie         | `@Cookie("session") String session`        |
 
 ## Query parameters
 
 ```java
-@route("/search")
+@Route("/search")
 public class SearchController {
 
-    @get
+    @Get
     public Map<String, Object> search(
-            @query("q") String query,
-            @query("limit") @optional Integer limit,
-            @query("sort") Optional<String> sort) {
+            @Query("q") String query,
+            @Query("limit") @Optional Integer limit,
+            @Query("sort") Optional<String> sort) {
 
         return Map.of(
                 "query", query,
@@ -39,30 +39,30 @@ public class SearchController {
 }
 ```
 
-- `@query("q")` names the query key explicitly. Without a value, javapi uses the
-  parameter name (`@query String q` is the same thing when compiled with
+- `@Query("q")` names the query key explicitly. Without a value, javapi uses the
+  parameter name (`@Query String q` is the same thing when compiled with
   `-parameters`).
-- **Optional parameters** are declared either with `@optional` (null when
+- **Optional parameters** are declared either with `@Optional` (null when
   absent) or as `Optional<T>` (`Optional.empty()` when absent). Both work in
   parameters and record fields.
 - Missing **required** parameters fail with `422` and a JSON error body.
 
 ## Type conversion
 
-Scalar parameters (`@path`, `@query`, `@header`, `@cookie`, `@form`, `@value`)
+Scalar parameters (`@Path`, `@Query`, `@Header`, `@Cookie`, `@Form`, `@Value`)
 are converted from their string form automatically:
 
 - primitives and boxed numbers: `int`, `long`, `short`, `byte`, `double`,
   `float`, `boolean`, `char`
 - `String`, `UUID`
 - enums (by name, case-insensitive)
-- `Optional<T>` and `@optional` wrappers of all of the above
+- `Optional<T>` and `@Optional` wrappers of all of the above
 
 ```java
-@get("/:itemId")
+@Get("/:itemId")
 public Map<String, Object> item(
-        @path UUID itemId,
-        @query("include") @optional boolean includeDetails) {
+        @Path UUID itemId,
+        @Query("include") @Optional boolean includeDetails) {
     return Map.of("itemId", itemId, "includeDetails", includeDetails);
 }
 ```
@@ -74,11 +74,11 @@ chapter.
 ## Headers & cookies
 
 ```java
-@get("/whoami")
+@Get("/whoami")
 public Map<String, Object> whoami(
-        @header("user-agent") @optional String userAgent,
-        @header("authorization") @optional String authorization,
-        @cookie("session") @optional String sessionId) {
+        @Header("user-agent") @Optional String userAgent,
+        @Header("authorization") @Optional String authorization,
+        @Cookie("session") @Optional String sessionId) {
     return Map.of(
             "userAgent", userAgent == null ? "" : userAgent,
             "authorized", authorization != null,
@@ -92,7 +92,7 @@ Any handler can also accept a `Request` and read everything directly — useful
 when a value doesn't map cleanly to a single parameter:
 
 ```java
-@get("/dump")
+@Get("/dump")
 public Map<String, Object> dump(Request request) {
     return Map.of(
             "method", request.method(),

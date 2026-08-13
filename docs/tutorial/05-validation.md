@@ -13,34 +13,34 @@ and answers with `422` when something doesn't fit.
 
 | Annotation       | Meaning                    | Applies to        |
 |------------------|----------------------------|-------------------|
-| `@min` / `@max`  | numeric bounds (inclusive) | numbers           |
-| `@minlength` / `@maxlength` | string length bounds | strings    |
-| `@pattern`       | regular expression         | strings           |
-| `@email`         | email format               | strings           |
-| `@optional`      | nullable / optional        | anything          |
+| `@Min` / `@Max`  | numeric bounds (inclusive) | numbers           |
+| `@MinLength` / `@MaxLength` | string length bounds | strings    |
+| `@Pattern`       | regular expression         | strings           |
+| `@Email`         | email format               | strings           |
+| `@Optional`      | nullable / optional        | anything          |
 
 They work on **method parameters** (all sources) and on **record components**
 (request bodies and responses):
 
 ```java
-@get("/search")
+@Get("/search")
 public Map<String, Object> search(
-        @query("q") @minlength(2) @maxlength(50) String q,
-        @query("limit") @min(1) @max(100) int limit) {
+        @Query("q") @MinLength(2) @MaxLength(50) String q,
+        @Query("limit") @Min(1) @Max(100) int limit) {
     return Map.of("q", q, "limit", limit);
 }
 ```
 
 ```java
 public record Item(
-        @minlength(2) @maxlength(40) String name,
-        @min(0) @max(100000) int quantity,
-        @email @optional String supplierEmail) {
+        @MinLength(2) @MaxLength(40) String name,
+        @Min(0) @Max(100000) int quantity,
+        @Email @Optional String supplierEmail) {
 }
 ```
 
 Validation is recursive: constraints on nested records run when they're parsed,
-so a `price` record with a `@min(0)` cents component is checked as part of the
+so a `price` record with a `@Min(0)` cents component is checked as part of the
 parent body.
 
 ## The 422 error body
@@ -59,7 +59,7 @@ is an object with a `loc` (path to the offending value), a human-readable
 ```
 
 - `loc` uses `"body"`, `"query"`, `"path"`, `"header"`, `"cookie"`, `"form"`,
-  `"file"`, or `"config"` (for `@value`) as the source, then the field path
+  `"file"`, or `"config"` (for `@Value`) as the source, then the field path
   (`["body","price","cents"]` for a nested component).
 - The response `Content-Type` is `application/json`.
 

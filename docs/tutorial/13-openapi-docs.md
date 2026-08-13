@@ -34,29 +34,29 @@ curl http://localhost:8080/openapi.json
 
 Everything is derived from your declarations:
 
-- **Paths** from `@route` prefixes + verb-annotation paths.
-- **Parameters** from `@path` / `@query` / `@header` / `@cookie` with their
+- **Paths** from `@Route` prefixes + verb-annotation paths.
+- **Parameters** from `@Path` / `@Query` / `@Header` / `@Cookie` with their
   names, types, and `optional` markers.
-- **Bodies** from `@body` records — the component tree becomes a JSON schema.
-- **Constraints** (`@min`, `@max`, `@minlength`, `@maxlength`, `@pattern`,
-  `@email`) are embedded as schema keywords, so Swagger UI shows them and can
+- **Bodies** from `@Body` records — the component tree becomes a JSON schema.
+- **Constraints** (`@Min`, `@Max`, `@MinLength`, `@MaxLength`, `@Pattern`,
+  `@Email`) are embedded as schema keywords, so Swagger UI shows them and can
   validate client-side.
 - **Multipart** uploads appear as `multipart/form-data` with the file parts.
 
 So a controller like this:
 
 ```java
-@route("/items")
+@Route("/items")
 public class ItemController {
 
     public record Item(
-            @minlength(2) @maxlength(40) String name,
-            @min(0) int quantity,
-            @email @optional String supplierEmail) {
+            @MinLength(2) @MaxLength(40) String name,
+            @Min(0) int quantity,
+            @Email @Optional String supplierEmail) {
     }
 
-    @post
-    public Item create(@body Item item) {
+    @Post
+    public Item create(@Body Item item) {
         return item;
     }
 }

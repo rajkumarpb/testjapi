@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.PARAMETER)
-public @interface form {
-    String value() default "";
+@Target({ElementType.CONSTRUCTOR, ElementType.FIELD})
+public @interface Inject {
 }

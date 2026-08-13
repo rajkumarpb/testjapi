@@ -101,7 +101,7 @@ res.contentType();             // String
 ```
 
 Typed parsing makes assertions read nicely (here against a scanned controller
-whose `@post` returns `Response.of(201, item)` for a `@body Item`):
+whose `@Post` returns `Response.of(201, item)` for a `@Body Item`):
 
 ```java
 record Item(String name, int quantity, String supplierEmail) {}

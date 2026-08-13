@@ -2,29 +2,29 @@ package javapi.testroutes;
 
 import java.util.Map;
 import javapi.annotations.HttpMethod;
-import javapi.annotations.get;
-import javapi.annotations.post;
-import javapi.annotations.route;
+import javapi.annotations.Get;
+import javapi.annotations.Post;
+import javapi.annotations.Route;
 
-@route("/items")
+@Route("/items")
 public class DemoController {
 
-    @get("/")
+    @Get("/")
     public Map<String, Object> list() {
         return Map.of("ok", true);
     }
 
-    @get("/:itemId")
+    @Get("/:itemId")
     public Map<String, String> item() {
         return Map.of("itemId", "x");
     }
 
-    @post
+    @Post
     public Map<String, Boolean> create() {
         return Map.of("created", true);
     }
 
-    @route(value = "/ping", methods = {HttpMethod.GET, HttpMethod.HEAD})
+    @Route(value = "/ping", methods = {HttpMethod.GET, HttpMethod.HEAD})
     public Map<String, String> ping() {
         return Map.of("pong", "ok");
     }

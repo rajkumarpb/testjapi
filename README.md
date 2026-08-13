@@ -29,7 +29,7 @@ Run it, then open `http://localhost:8080/docs` for interactive Swagger UI.
 
 - **Runtime reflection over `record` types** — parse/validate/serialize from your
   type declarations alone. Zero codegen, zero annotations on types unless you want them.
-- **All-lowercase annotations** — `@get`, `@route`, `@body`, `@query`, `@depends`, `@value`, ...
+- **PascalCase annotations** — `@Get`, `@Route`, `@Body`, `@Query`, `@Depends`, `@Value`, ...
 - **Java 21 virtual threads** — blocking handler code is fine; a slow endpoint never
   stalls the server.
 - **Netty** under the hood.
@@ -51,7 +51,7 @@ dependencies {
 
 ### Your first API
 
-`javapi` reflects over controller classes. `@route` on a class is a path prefix;
+`javapi` reflects over controller classes. `@Route` on a class is a path prefix;
 verb annotations register methods:
 
 ```java
@@ -61,27 +61,27 @@ import java.util.List;
 import java.util.Map;
 import javapi.annotations.*;
 
-@route("/items")
+@Route("/items")
 public class ItemController {
 
     public record Item(
-            @minlength(2) @maxlength(20) String name,
-            @min(1) @max(1000) int quantity,
-            @email @optional String supplierEmail) {
+            @MinLength(2) @MaxLength(20) String name,
+            @Min(1) @Max(1000) int quantity,
+            @Email @Optional String supplierEmail) {
     }
 
-    @get("/")
-    public Map<String, Object> list(@query("limit") int limit, @query("q") @optional String q) {
+    @Get("/")
+    public Map<String, Object> list(@Query("limit") int limit, @Query("q") @Optional String q) {
         return Map.of("items", List.of("alpha", "beta"), "limit", limit, "q", q == null ? "" : q);
     }
 
-    @get("/:itemId")
-    public Map<String, Object> item(@path int itemId, @header("user-agent") @optional String userAgent) {
+    @Get("/:itemId")
+    public Map<String, Object> item(@Path int itemId, @Header("user-agent") @Optional String userAgent) {
         return Map.of("itemId", itemId, "userAgent", userAgent == null ? "" : userAgent);
     }
 
-    @post
-    public Map<String, Object> create(@body Item item) {
+    @Post
+    public Map<String, Object> create(@Body Item item) {
         return Map.of("created", item);
     }
 }
@@ -100,17 +100,17 @@ validation happen automatically (422 with a JSON error body on failure).
 
 | Annotation      | Source                    | Example                                  |
 |-----------------|---------------------------|------------------------------------------|
-| `@path`         | URL path segment          | `@get("/:itemId")` + `@path int itemId`  |
-| `@query`        | Query string              | `@query("q") String q`                   |
-| `@header`       | Request header            | `@header("user-agent") String ua`        |
-| `@cookie`       | Cookie                    | `@cookie("session") String s`            |
-| `@body`         | JSON request body         | `@body Item item`                        |
-| `@form`         | Form-encoded field        | `@form("note") String note`              |
-| `@file`         | Multipart file upload     | `@file UploadedFile doc`                 |
-| `@value`        | Configuration value       | `@value("app.title") String title`       |
-| `@depends`      | DI container lookup       | `@depends Greeter greeter`               |
+| `@Path`         | URL path segment          | `@Get("/:itemId")` + `@Path int itemId`  |
+| `@Query`        | Query string              | `@Query("q") String q`                   |
+| `@Header`       | Request header            | `@Header("user-agent") String ua`        |
+| `@Cookie`       | Cookie                    | `@Cookie("session") String s`            |
+| `@Body`         | JSON request body         | `@Body Item item`                        |
+| `@Form`         | Form-encoded field        | `@Form("note") String note`              |
+| `@File`         | Multipart file upload     | `@File UploadedFile doc`                 |
+| `@Value`        | Configuration value       | `@Value("app.title") String title`       |
+| `@Depends`      | DI container lookup       | `@Depends Greeter greeter`               |
 
-`Optional<T>` parameters and `@optional`-annotated fields are nullable. `Request`
+`Optional<T>` parameters and `@Optional`-annotated fields are nullable. `Request`
 is injectable directly for raw access (`request.body()`, `request.form()`,
 `request.files()`, `request.pathParam("id")`, `request.queryParams()`, ...).
 
@@ -120,11 +120,11 @@ Constraint annotations work on parameters and record fields:
 
 | Annotation    | Meaning                       |
 |---------------|-------------------------------|
-| `@min`/`@max` | numeric bounds                |
-| `@minlength`/`@maxlength` | string length bounds |
-| `@pattern`    | regex                         |
-| `@email`      | email format                  |
-| `@optional`   | nullable / optional           |
+| `@Min`/`@Max` | numeric bounds                |
+| `@MinLength`/`@MaxLength` | string length bounds |
+| `@Pattern`    | regex                         |
+| `@Email`      | email format                  |
+| `@Optional`   | nullable / optional           |
 
 Failures return **422** with the field name and a `detail` message.
 
@@ -145,10 +145,10 @@ Raise `HttpException(status, message)` for a JSON error body with any status:
 throw new HttpException(404, "Item not found");
 ```
 
-Map arbitrary exceptions to responses with `@exception`:
+Map arbitrary exceptions to responses with `@ExceptionHandler`:
 
 ```java
-@exception(IllegalStateException.class)
+@ExceptionHandler(IllegalStateException.class)
 public Response onIllegalState(IllegalStateException error) {
     return Response.of(500, Map.of("detail", error.getMessage(), "error", "illegal_state"));
 }
@@ -156,7 +156,7 @@ public Response onIllegalState(IllegalStateException error) {
 
 ## Dependency injection
 
-Register singletons and factories, then pull them into any endpoint with `@depends`:
+Register singletons and factories, then pull them into any endpoint with `@Depends`:
 
 ```java
 JavAPI.create()
@@ -191,13 +191,13 @@ app.staticFiles("/static");                                    // classpath reso
 app.staticFiles("/uploads", Path.of("./uploads"));             // from disk
 ```
 
-`@middleware` classes in a scanned package are registered automatically.
+`@Middleware` classes in a scanned package are registered automatically.
 
 ## File uploads
 
 ```java
-@post("/upload")
-public Response upload(@form String note, @file UploadedFile document) {
+@Post("/upload")
+public Response upload(@Form String note, @File UploadedFile document) {
     return Response.ok(Map.of(
             "note", note,
             "filename", document.filename(),
@@ -225,7 +225,7 @@ app.ws("/echo", new WebSocketEndpoint() {
 Return an `SseEmitter` from any route:
 
 ```java
-@get("/stream")
+@Get("/stream")
 public SseEmitter stream() {
     SseEmitter emitter = new SseEmitter();
     for (int i = 0; i < 5; i++) {
@@ -258,13 +258,13 @@ Endpoint configuration uses relaxed binding — `-Djavapi.workers=2` overrides
 With `core/jdbc`, inject a `Jdbc` helper and map result rows straight into records:
 
 ```java
-@route("/db")
+@Route("/db")
 public class DbController {
 
     public record DbItem(long id, String name, int quantity, String supplierEmail) {}
 
-    @depends Jdbc db
-    @get("/items")
+    @Depends Jdbc db
+    @Get("/items")
     public List<DbItem> list() {
         return db.query("SELECT * FROM db_items ORDER BY id", RowMapper.from(DbItem.class));
     }

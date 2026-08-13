@@ -6,9 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.METHOD})
-public @interface route {
-    String value() default "/";
-
-    HttpMethod[] methods() default {};
+@Target(ElementType.METHOD)
+public @interface ExceptionHandler {
+    Class<? extends Throwable> value();
 }

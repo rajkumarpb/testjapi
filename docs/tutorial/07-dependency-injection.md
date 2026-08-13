@@ -1,15 +1,15 @@
 # 7. Dependency injection
 
 javapi ships a small, zero-dependency DI container. Services are registered
-once and pulled into any endpoint with `@depends`.
+once and pulled into any endpoint with `@Depends`.
 
 > **What you'll learn**
 >
 > - `component(...)` for singletons and implementations
 > - `requestScoped(...)` for per-request objects (DB sessions, request context)
 > - `override(...)` for tests
-> - `@depends` parameters and `@component` scanned classes
-> - `@value` for configuration injection
+> - `@Depends` parameters and `@Component` scanned classes
+> - `@Value` for configuration injection
 
 ## Singletons
 
@@ -39,21 +39,21 @@ JavAPI.create()
 Use it in any endpoint:
 
 ```java
-import javapi.annotations.depends;
+import javapi.annotations.Depends;
 
-@get("/hello")
-public Map<String, String> hello(@depends Greeter greeter, @query("name") String name) {
+@Get("/hello")
+public Map<String, String> hello(@Depends Greeter greeter, @Query("name") String name) {
     return Map.of("greeting", greeter.greet(name));
 }
 ```
 
-`@component`-annotated classes in a scanned package register themselves —
+`@Component`-annotated classes in a scanned package register themselves —
 `EnglishGreeter` above could simply be:
 
 ```java
-import javapi.annotations.component;
+import javapi.annotations.Component;
 
-@component
+@Component
 public class EnglishGreeter implements Greeter { ... }
 ```
 
@@ -76,8 +76,8 @@ The factory signature is `T create(DI.Context context)`; `context` exposes
 `request()`, `resolve(type)`, and `close()`. Same code shape as:
 
 ```java
-@get("/me")
-public Map<String, String> me(@depends RequestContext requestContext) {
+@Get("/me")
+public Map<String, String> me(@Depends RequestContext requestContext) {
     return Map.of("userId", requestContext.userId());
 }
 ```
@@ -94,18 +94,18 @@ JavAPI app = JavAPI.create()
         .scan("com.example");
 
 try (TestClient client = TestClient.forApp(app)) {
-    // every @depends Greeter now receives the fake
+    // every @Depends Greeter now receives the fake
 }
 ```
 
-## `@value` — configuration in parameters and records
+## `@Value` — configuration in parameters and records
 
-`@value` injects a value from the configuration chain (properties, env vars,
+`@Value` injects a value from the configuration chain (properties, env vars,
 system properties — see [chapter 11](11-configuration.md)):
 
 ```java
-@get("/info")
-public Map<String, String> info(@value("app.title") String title) {
+@Get("/info")
+public Map<String, String> info(@Value("app.title") String title) {
     return Map.of("title", title);
 }
 ```
@@ -120,8 +120,8 @@ app.title=javapi demo
 
 1. `override(type, instance)` wins if present.
 2. Registered bindings: instance → singleton factory (lazy) → request factory.
-3. `@component`-scanned classes register themselves as singletons.
-4. `@depends Connection` / `@depends Jdbc` / `@depends DataSource` resolve from
+3. `@Component`-scanned classes register themselves as singletons.
+4. `@Depends Connection` / `@Depends Jdbc` / `@Depends DataSource` resolve from
    the JDBC setup ([chapter 12](12-databases.md)).
 5. Missing bindings fail fast with a message telling you to register or
    annotate the type.

@@ -7,7 +7,7 @@ enable in one line.
 > **What you'll learn**
 >
 > - The `Middleware` / `Next` contract
-> - `app.use(...)` and `@middleware` classes
+> - `app.use(...)` and `@Middleware` classes
 > - Built-in `cors(...)` and `staticFiles(...)`
 
 ## The contract
@@ -55,19 +55,19 @@ Middleware registered first runs first (outermost). You can:
   })
   ```
 
-## `@middleware` classes
+## `@Middleware` classes
 
 Middleware classes in a scanned package register automatically. A class is a
-valid `@middleware` provider if it **implements `Middleware`** or **exposes a
+valid `@Middleware` provider if it **implements `Middleware`** or **exposes a
 public method returning one**:
 
 ```java
-import javapi.annotations.middleware;
+import javapi.annotations.Middleware;
 import javapi.middleware.Middleware;
 import javapi.middleware.Next;
 import javapi.request.Request;
 
-@middleware
+@Middleware
 public class RequestIdMiddleware implements Middleware {
     @Override
     public Object handle(Request request, Next next) {

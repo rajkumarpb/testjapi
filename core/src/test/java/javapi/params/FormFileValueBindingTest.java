@@ -7,34 +7,33 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import javapi.annotations.file;
-import javapi.annotations.form;
-import javapi.annotations.value;
+import javapi.annotations.File;
+import javapi.annotations.Form;
+import javapi.annotations.Value;
 import javapi.request.Request;
 
 class FormFileValueBindingTest {
 
     static class Targets {
 
-        public String form(@form("name") String name, @form("age") int age) {
+        public String form(@Form("name") String name, @Form("age") int age) {
             return name + ":" + age;
         }
 
-        public String optionalForm(@form("nick") @javapi.annotations.optional String nick) {
+        public String optionalForm(@Form("nick") @javapi.annotations.Optional String nick) {
             return nick == null ? "none" : nick;
         }
 
-        public String upload(@form("note") String note, @file("document") UploadedFile file) {
+        public String upload(@Form("note") String note, @File("document") UploadedFile file) {
             return note + "|" + file.filename() + "|" + new String(file.content(), StandardCharsets.UTF_8);
         }
 
-        public String optionalUpload(@file("document") @javapi.annotations.optional UploadedFile file) {
+        public String optionalUpload(@File("document") @javapi.annotations.Optional UploadedFile file) {
             return file == null ? "none" : file.filename();
         }
 
-        public String value(@value("feature.flag") boolean flag, @value("feature.name") String name) {
+        public String value(@Value("feature.flag") boolean flag, @Value("feature.name") String name) {
             return flag + ":" + name;
         }
     }

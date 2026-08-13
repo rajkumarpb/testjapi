@@ -1,14 +1,13 @@
 package javapi.phase8routes;
 
 import java.util.Map;
-import javapi.annotations.middleware;
-import javapi.middleware.Middleware;
+import javapi.annotations.Middleware;
 import javapi.middleware.Next;
 import javapi.request.Request;
 import javapi.request.Response;
 
-@middleware
-public class HeaderMiddleware implements Middleware {
+@Middleware
+public class HeaderMiddleware implements javapi.middleware.Middleware {
 
     @Override
     public Object handle(Request request, Next next) {

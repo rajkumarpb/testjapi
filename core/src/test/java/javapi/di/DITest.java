@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-import javapi.annotations.component;
-import javapi.annotations.inject;
+import javapi.annotations.Component;
+import javapi.annotations.Inject;
 import javapi.request.Request;
 
 class DITest {
@@ -16,7 +16,7 @@ class DITest {
         String greet(String name);
     }
 
-    @component
+    @Component
     static class EnglishGreeter implements Greeter {
         @Override
         public String greet(String name) {
@@ -39,7 +39,7 @@ class DITest {
     static class NeedsGreeter {
         private final Greeter greeter;
 
-        @inject
+        @Inject
         public NeedsGreeter(Greeter greeter) {
             this.greeter = greeter;
         }

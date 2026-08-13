@@ -7,16 +7,15 @@ import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import javapi.annotations.email;
-import javapi.annotations.max;
-import javapi.annotations.maxlength;
-import javapi.annotations.min;
-import javapi.annotations.minlength;
-import javapi.annotations.optional;
-import javapi.annotations.pattern;
+import javapi.annotations.Email;
+import javapi.annotations.Max;
+import javapi.annotations.MaxLength;
+import javapi.annotations.Min;
+import javapi.annotations.MinLength;
+import javapi.annotations.Optional;
+import javapi.annotations.Pattern;
 import javapi.params.FieldError;
 import javapi.params.RequestValidationError;
 
@@ -27,9 +26,9 @@ class SchemaValidatorTest {
     }
 
     record Member(
-            @minlength(2) @maxlength(10) String name,
-            @email String email,
-            @min(0) int age,
+            @MinLength(2) @MaxLength(10) String name,
+            @Email String email,
+            @Min(0) int age,
             Level level) {
     }
 
@@ -40,13 +39,13 @@ class SchemaValidatorTest {
     }
 
     record Profile(
-            @minlength(2) @maxlength(10) String name,
+            @MinLength(2) @MaxLength(10) String name,
             Address address,
             List<Address> addresses,
             Map<String, Integer> scores,
-            @pattern("^[A-Z]{2}[0-9]{3}$") String code,
-            @optional String bio,
-            Optional<Address> home,
+            @Pattern("^[A-Z]{2}[0-9]{3}$") String code,
+            @Optional String bio,
+            java.util.Optional<Address> home,
             Level level,
             UUID id,
             LocalDate birthday) {
@@ -146,7 +145,7 @@ class SchemaValidatorTest {
 
     @Test
     void maxConstraintFails() {
-        record Score(@max(10) int value) {
+        record Score(@Max(10) int value) {
         }
         RequestValidationError error = fails(Score.class, "{\"value\":11}");
         assertEquals("less_than_equal", error.errors().get(0).type());
@@ -168,7 +167,7 @@ class SchemaValidatorTest {
         Object value = SchemaValidator.validate(Profile.class, raw, List.of("body"));
         Profile profile = assertInstanceOf(Profile.class, value);
         assertEquals(null, profile.bio());
-        assertEquals(Optional.empty(), profile.home());
+        assertEquals(java.util.Optional.empty(), profile.home());
     }
 
     @Test

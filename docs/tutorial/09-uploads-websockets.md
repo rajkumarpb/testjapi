@@ -1,11 +1,11 @@
 # 9. File uploads & WebSockets
 
 Two real-time / file-handling features in one chapter: multipart uploads with
-`@form` + `@file`, and bidirectional WebSocket endpoints.
+`@Form` + `@File`, and bidirectional WebSocket endpoints.
 
 > **What you'll learn**
 >
-> - `@form` and `@file` parameter binding, the `UploadedFile` type
+> - `@Form` and `@File` parameter binding, the `UploadedFile` type
 > - Multipart and urlencoded form handling
 > - Registering WebSocket endpoints with `app.ws(...)`
 
@@ -14,17 +14,17 @@ Two real-time / file-handling features in one chapter: multipart uploads with
 An endpoint that receives both a text field and a file:
 
 ```java
-import javapi.annotations.file;
-import javapi.annotations.form;
-import javapi.annotations.post;
+import javapi.annotations.File;
+import javapi.annotations.Form;
+import javapi.annotations.Post;
 import javapi.request.Response;
 import javapi.params.UploadedFile;
 
-@route("/upload")
+@Route("/upload")
 public class UploadController {
 
-    @post
-    public Response upload(@form String note, @file UploadedFile document) {
+    @Post
+    public Response upload(@Form String note, @File UploadedFile document) {
         return Response.ok(Map.of(
                 "note", note,
                 "filename", document.filename(),
@@ -51,10 +51,10 @@ curl -X POST http://localhost:8080/upload `
 
 Notes:
 
-- `application/x-www-form-urlencoded` bodies work too — `@form` binds from
+- `application/x-www-form-urlencoded` bodies work too — `@Form` binds from
   either encoding.
-- `@file` parameters are `List<UploadedFile>` if the field repeats.
-- Multiple `@file` parameters of different names are fine.
+- `@File` parameters are `List<UploadedFile>` if the field repeats.
+- Multiple `@File` parameters of different names are fine.
 - On the `Request` side: `request.form("note")`, `request.form()`, and
   `request.files()` / `request.file("document")` expose the raw parsed data.
 

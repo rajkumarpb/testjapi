@@ -7,9 +7,9 @@ optional adapter module.
 > **What you'll learn**
 >
 > - Enabling JDBC with `app.jdbc(url, user, pass)` or `db.url` config
-> - `@depends Jdbc` and record row-mapping with `RowMapper.from(...)`
+> - `@Depends Jdbc` and record row-mapping with `RowMapper.from(...)`
 > - `insert` / `update` / `findOne` / `query`
-> - Transactions with `@transaction` and `Jdbc.tx`
+> - Transactions with `@Transaction` and `Jdbc.tx`
 > - How `jdbc-pool` plugs in automatically
 
 ## Setup
@@ -45,23 +45,23 @@ public record DbItem(long id, String name, int quantity, String supplierEmail) {
 ```
 
 ```java
-import javapi.annotations.depends;
-import javapi.annotations.get;
-import javapi.annotations.path;
+import javapi.annotations.Depends;
+import javapi.annotations.Get;
+import javapi.annotations.Path;
 import javapi.jdbc.Jdbc;
 import javapi.jdbc.RowMapper;
 import javapi.request.HttpException;
 
-@route("/db")
+@Route("/db")
 public class DbController {
 
-    @get("/items")
-    public List<DbItem> list(@depends Jdbc db) {
+    @Get("/items")
+    public List<DbItem> list(@Depends Jdbc db) {
         return db.query("SELECT * FROM db_items ORDER BY id", RowMapper.from(DbItem.class));
     }
 
-    @get("/items/:id")
-    public DbItem item(@depends Jdbc db, @path long id) {
+    @Get("/items/:id")
+    public DbItem item(@Depends Jdbc db, @Path long id) {
         return db.findOne("SELECT * FROM db_items WHERE id = ?", RowMapper.from(DbItem.class), id)
                 .orElseThrow(() -> new HttpException(404, "Item not found"));
     }
@@ -76,28 +76,28 @@ name, including camelCase ↔ snake_case conversion — `supplier_email` maps to
 ## Writes and generated keys
 
 ```java
-import javapi.annotations.body;
-import javapi.annotations.delete;
-import javapi.annotations.post;
+import javapi.annotations.Body;
+import javapi.annotations.Delete;
+import javapi.annotations.Post;
 
 public record CreateItem(String name, int quantity, String supplierEmail) {}
 
-@post("/items")
-public Map<String, Object> create(@depends Jdbc db, @body CreateItem input) {
+@Post("/items")
+public Map<String, Object> create(@Depends Jdbc db, @Body CreateItem input) {
     long id = db.insert(
             "INSERT INTO db_items(name, quantity, supplier_email) VALUES (?,?,?)",
             input.name(), input.quantity(), input.supplierEmail());
     return Map.of("id", id);
 }
 
-@get("/items/:id")
-public Map<String, Object> get(@depends Jdbc db, @path long id) {
+@Get("/items/:id")
+public Map<String, Object> get(@Depends Jdbc db, @Path long id) {
     return db.findOne("SELECT * FROM db_items WHERE id = ?", RowMapper.from(DbItem.class), id)
             .orElseThrow(() -> new HttpException(404, "Item not found"));
 }
 
-@delete("/items/:id")
-public Map<String, Object> delete(@depends Jdbc db, @path long id) {
+@Delete("/items/:id")
+public Map<String, Object> delete(@Depends Jdbc db, @Path long id) {
     int removed = db.update("DELETE FROM db_items WHERE id = ?", id);
     return Map.of("removed", removed);
 }
@@ -114,7 +114,7 @@ The `Jdbc` helper:
 | `tx(block)`                         | block result             |
 | `connection()`                      | the raw `Connection`     |
 
-`Optional` and `@optional` values in `params` become SQL `NULL` when empty.
+`Optional` and `@Optional` values in `params` become SQL `NULL` when empty.
 
 ## Transactions
 
@@ -122,13 +122,13 @@ Either annotate the endpoint — the transaction opens on the first JDBC call,
 commits on success, rolls back on any exception:
 
 ```java
-import javapi.annotations.transaction;
-import javapi.annotations.query;
+import javapi.annotations.Transaction;
+import javapi.annotations.Query;
 
-@post("/transfer")
-@transaction
-public Map<String, Object> transfer(@depends Jdbc db,
-        @query("from") long from, @query("to") long to, @query("amount") int amount) {
+@Post("/transfer")
+@Transaction
+public Map<String, Object> transfer(@Depends Jdbc db,
+        @Query("from") long from, @Query("to") long to, @Query("amount") int amount) {
     int moved = db.update("UPDATE db_items SET quantity = quantity - ? WHERE id = ?", amount, from);
     if (moved != 1) {
         throw new HttpException(404, "Source item not found");
@@ -144,8 +144,8 @@ public Map<String, Object> transfer(@depends Jdbc db,
 Or wrap a block of work explicitly:
 
 ```java
-@post("/import")
-public Map<String, Object> importAll(@depends Jdbc db, @body List<CreateItem> items) throws Exception {
+@Post("/import")
+public Map<String, Object> importAll(@Depends Jdbc db, @Body List<CreateItem> items) throws Exception {
     return Jdbc.tx(db, () -> {
         int total = 0;
         for (CreateItem item : items) {

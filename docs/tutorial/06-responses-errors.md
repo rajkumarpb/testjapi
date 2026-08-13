@@ -8,7 +8,7 @@ handlers.
 >
 > - `Response` for status codes, bodies, and headers
 > - `HttpException` for JSON errors with any status
-> - Mapping exceptions with `@exception` methods and `app.exception(...)`
+> - Mapping exceptions with `@ExceptionHandler` methods and `app.exception(...)`
 > - Background tasks after the response is sent
 
 ## Returning plain values
@@ -17,7 +17,7 @@ Return records, enums, dates, `UUID`, lists, `Map`, `byte[]`... javapi
 serializes it as JSON:
 
 ```java
-@get("/ping")
+@Get("/ping")
 public Map<String, Object> ping() {
     return Map.of("pong", true, "time", java.time.Instant.now());
 }
@@ -28,8 +28,8 @@ public Map<String, Object> ping() {
 ```java
 import javapi.request.Response;
 
-@post("/items")
-public Response create(@body Item item) {
+@Post("/items")
+public Response create(@Body Item item) {
     return Response.of(201, item)
             .withHeader("Location", "/items/" + item.id());
 }
@@ -58,8 +58,8 @@ and a `detail` field:
 ```java
 import javapi.request.HttpException;
 
-@get("/items/:itemId")
-public Item item(@path int itemId) {
+@Get("/items/:itemId")
+public Item item(@Path int itemId) {
     if (itemId <= 0) {
         throw new HttpException(404, "Item not found");
     }
@@ -95,17 +95,17 @@ JavAPI.create()
 the exception, and return a `Response`:
 
 ```java
-@route("/items")
+@Route("/items")
 public class ItemController {
 
     // ... routes ...
 
-    @exception(IllegalArgumentException.class)
+    @ExceptionHandler(IllegalArgumentException.class)
     public Response onBadInput(IllegalArgumentException error) {
         return Response.of(400, Map.of("detail", error.getMessage(), "error", "bad_input"));
     }
 
-    @exception(Exception.class)
+    @ExceptionHandler(Exception.class)
     public Response onAny(Throwable error) {
         return Response.of(500, Map.of("detail", "Something went wrong"));
     }
@@ -113,8 +113,8 @@ public class ItemController {
 ```
 
 Handlers are matched by most-specific type first (walking superclasses then
-interfaces), so a `@exception(IllegalArgumentException.class)` handler wins over
-`@exception(Exception.class)` for an `IllegalArgumentException`.
+interfaces), so a `@ExceptionHandler(IllegalArgumentException.class)` handler wins over
+`@ExceptionHandler(Exception.class)` for an `IllegalArgumentException`.
 
 ## Background tasks
 
@@ -124,8 +124,8 @@ warm-up — goes into `BackgroundTasks`:
 ```java
 import javapi.request.BackgroundTasks;
 
-@post("/items")
-public Response create(@body Item item) {
+@Post("/items")
+public Response create(@Body Item item) {
     return Response.of(201, item)
             .withBackgroundTasks(BackgroundTasks.of(() -> notifySubscribers(item)));
 }

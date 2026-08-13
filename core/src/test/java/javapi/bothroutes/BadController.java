@@ -1,17 +1,17 @@
 package javapi.bothroutes;
 
 import java.util.Map;
-import javapi.annotations.blocking;
-import javapi.annotations.eventloop;
-import javapi.annotations.get;
-import javapi.annotations.route;
+import javapi.annotations.Blocking;
+import javapi.annotations.EventLoop;
+import javapi.annotations.Get;
+import javapi.annotations.Route;
 
-@route("/bad")
+@Route("/bad")
 public class BadController {
 
-    @get
-    @eventloop
-    @blocking
+    @Get
+    @EventLoop
+    @Blocking
     public Map<String, String> bad() {
         return Map.of();
     }

@@ -1,44 +1,43 @@
 package javapi.schema;
 
 import java.lang.reflect.AnnotatedElement;
-import java.util.regex.Pattern;
-import javapi.annotations.email;
-import javapi.annotations.max;
-import javapi.annotations.maxlength;
-import javapi.annotations.min;
-import javapi.annotations.minlength;
-import javapi.annotations.optional;
-import javapi.annotations.pattern;
+import javapi.annotations.Email;
+import javapi.annotations.Max;
+import javapi.annotations.MaxLength;
+import javapi.annotations.Min;
+import javapi.annotations.MinLength;
+import javapi.annotations.Optional;
+import javapi.annotations.Pattern;
 
 public record Constraints(
         Integer minLength,
         Integer maxLength,
         Long min,
         Long max,
-        Pattern pattern,
+        java.util.regex.Pattern pattern,
         boolean email,
         boolean optional) {
 
     public static final Constraints NONE = new Constraints(null, null, null, null, null, false, false);
 
     public static Constraints of(AnnotatedElement element) {
-        Integer minLength = element.isAnnotationPresent(minlength.class)
-                ? element.getAnnotation(minlength.class).value()
+        Integer minLength = element.isAnnotationPresent(MinLength.class)
+                ? element.getAnnotation(MinLength.class).value()
                 : null;
-        Integer maxLength = element.isAnnotationPresent(maxlength.class)
-                ? element.getAnnotation(maxlength.class).value()
+        Integer maxLength = element.isAnnotationPresent(MaxLength.class)
+                ? element.getAnnotation(MaxLength.class).value()
                 : null;
-        Long min = element.isAnnotationPresent(min.class)
-                ? element.getAnnotation(min.class).value()
+        Long min = element.isAnnotationPresent(Min.class)
+                ? element.getAnnotation(Min.class).value()
                 : null;
-        Long max = element.isAnnotationPresent(max.class)
-                ? element.getAnnotation(max.class).value()
+        Long max = element.isAnnotationPresent(Max.class)
+                ? element.getAnnotation(Max.class).value()
                 : null;
-        Pattern pattern = element.isAnnotationPresent(pattern.class)
-                ? Pattern.compile(element.getAnnotation(pattern.class).value())
+        java.util.regex.Pattern pattern = element.isAnnotationPresent(Pattern.class)
+                ? java.util.regex.Pattern.compile(element.getAnnotation(Pattern.class).value())
                 : null;
-        boolean email = element.isAnnotationPresent(email.class);
-        boolean optional = element.isAnnotationPresent(optional.class);
+        boolean email = element.isAnnotationPresent(Email.class);
+        boolean optional = element.isAnnotationPresent(Optional.class);
         if (minLength == null && maxLength == null && min == null && max == null
                 && pattern == null && !email && !optional) {
             return NONE;

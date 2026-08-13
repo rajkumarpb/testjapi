@@ -7,17 +7,16 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import javapi.annotations.body;
-import javapi.annotations.cookie;
-import javapi.annotations.depends;
-import javapi.annotations.file;
-import javapi.annotations.form;
-import javapi.annotations.header;
-import javapi.annotations.optional;
-import javapi.annotations.path;
-import javapi.annotations.query;
-import javapi.annotations.value;
+import javapi.annotations.Body;
+import javapi.annotations.Cookie;
+import javapi.annotations.Depends;
+import javapi.annotations.File;
+import javapi.annotations.Form;
+import javapi.annotations.Header;
+import javapi.annotations.Optional;
+import javapi.annotations.Path;
+import javapi.annotations.Query;
+import javapi.annotations.Value;
 import javapi.config.Config;
 import javapi.json.JsonException;
 import javapi.request.Request;
@@ -118,7 +117,7 @@ public final class ParamBinder {
                     "Field required", "missing"));
         }
         if (isOptionalType(binding.type())) {
-            return Optional.of(file);
+            return java.util.Optional.of(file);
         }
         return file;
     }
@@ -174,12 +173,12 @@ public final class ParamBinder {
     }
 
     private static boolean isOptionalType(Type type) {
-        return type instanceof ParameterizedType p && p.getRawType() == Optional.class;
+        return type instanceof ParameterizedType p && p.getRawType() == java.util.Optional.class;
     }
 
     private static Object absentDefault(Type type) {
-        if (type instanceof ParameterizedType p && p.getRawType() == Optional.class) {
-            return Optional.empty();
+        if (type instanceof ParameterizedType p && p.getRawType() == java.util.Optional.class) {
+            return java.util.Optional.empty();
         }
         Class<?> raw = (Class<?>) type;
         if (raw == int.class || raw == long.class || raw == short.class || raw == byte.class) {
@@ -203,7 +202,7 @@ public final class ParamBinder {
         boolean sawBody = false;
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            if (parameter.isAnnotationPresent(depends.class)) {
+            if (parameter.isAnnotationPresent(Depends.class)) {
                 bindings.add(new ParamBinding("depends", BindingSource.DEPENDS,
                         parameter.getParameterizedType(), false, Constraints.NONE));
                 continue;
@@ -211,14 +210,14 @@ public final class ParamBinder {
             Annotation annotation = null;
             int sources = 0;
             for (Annotation candidate : parameter.getAnnotations()) {
-                if (candidate instanceof path
-                        || candidate instanceof query
-                        || candidate instanceof header
-                        || candidate instanceof cookie
-                        || candidate instanceof body
-                        || candidate instanceof form
-                        || candidate instanceof file
-                        || candidate instanceof value) {
+                if (candidate instanceof Path
+                        || candidate instanceof Query
+                        || candidate instanceof Header
+                        || candidate instanceof Cookie
+                        || candidate instanceof Body
+                        || candidate instanceof Form
+                        || candidate instanceof File
+                        || candidate instanceof Value) {
                     annotation = candidate;
                     sources++;
                 }
@@ -238,33 +237,33 @@ public final class ParamBinder {
                     throw new IllegalStateException(
                             "Parameter " + i + " of " + method.getDeclaringClass().getName() + "."
                                     + method.getName() + " must declare a binding annotation "
-                                    + "(@path, @query, @header, @cookie, @body, @form, @file or @value)");
+                                    + "(@Path, @Query, @Header, @Cookie, @Body, @Form, @File or @Value)");
                 }
-            } else if (annotation instanceof path p) {
+            } else if (annotation instanceof Path p) {
                 name = named(parameter, p.value(), i, method, "path");
                 source = BindingSource.PATH;
-            } else if (annotation instanceof query q) {
+            } else if (annotation instanceof Query q) {
                 name = named(parameter, q.value(), i, method, "query");
                 source = BindingSource.QUERY;
-            } else if (annotation instanceof header h) {
+            } else if (annotation instanceof Header h) {
                 name = named(parameter, h.value(), i, method, "header");
                 source = BindingSource.HEADER;
-            } else if (annotation instanceof cookie c) {
+            } else if (annotation instanceof Cookie c) {
                 name = named(parameter, c.value(), i, method, "cookie");
                 source = BindingSource.COOKIE;
-            } else if (annotation instanceof form f) {
+            } else if (annotation instanceof Form f) {
                 name = named(parameter, f.value(), i, method, "form");
                 source = BindingSource.FORM;
-            } else if (annotation instanceof file f) {
+            } else if (annotation instanceof File f) {
                 name = named(parameter, f.value(), i, method, "file");
                 checkFileType(method, parameter.getParameterizedType());
                 source = BindingSource.FILE;
-            } else if (annotation instanceof value v) {
+            } else if (annotation instanceof Value v) {
                 name = v.value();
                 if (name == null || name.isBlank()) {
                     throw new IllegalStateException(
                             "Parameter " + i + " of " + method.getDeclaringClass().getName() + "."
-                                    + method.getName() + " has an empty @value key");
+                                    + method.getName() + " has an empty @Value key");
                 }
                 source = BindingSource.VALUE;
             } else {
@@ -284,7 +283,7 @@ public final class ParamBinder {
                         "Parameter " + i + " of " + method.getDeclaringClass().getName() + "."
                                 + method.getName() + " has an empty name");
             }
-            boolean optional = parameter.isAnnotationPresent(optional.class);
+            boolean optional = parameter.isAnnotationPresent(Optional.class);
             Constraints constraints = Constraints.of(parameter);
             bindings.add(new ParamBinding(name, source, parameter.getParameterizedType(), optional, constraints));
         }
@@ -295,13 +294,13 @@ public final class ParamBinder {
         if (type == UploadedFile.class) {
             return;
         }
-        if (type instanceof ParameterizedType p && p.getRawType() == Optional.class
+        if (type instanceof ParameterizedType p && p.getRawType() == java.util.Optional.class
                 && p.getActualTypeArguments().length == 1
                 && p.getActualTypeArguments()[0] == UploadedFile.class) {
             return;
         }
         throw new IllegalStateException(
-                "@file parameter in " + method.getDeclaringClass().getName() + "." + method.getName()
+                "@File parameter in " + method.getDeclaringClass().getName() + "." + method.getName()
                         + " must be of type UploadedFile or Optional<UploadedFile>");
     }
 

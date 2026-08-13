@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER, ElementType.FIELD, ElementType.RECORD_COMPONENT})
-public @interface maxlength {
-    int value();
+@Target(ElementType.TYPE)
+public @interface Component {
 }

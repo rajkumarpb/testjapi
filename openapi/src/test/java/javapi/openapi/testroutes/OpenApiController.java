@@ -1,29 +1,29 @@
 package javapi.openapi.testroutes;
 
 import java.util.Map;
-import javapi.annotations.body;
-import javapi.annotations.get;
-import javapi.annotations.optional;
-import javapi.annotations.path;
-import javapi.annotations.post;
-import javapi.annotations.query;
-import javapi.annotations.route;
+import javapi.annotations.Body;
+import javapi.annotations.Get;
+import javapi.annotations.Optional;
+import javapi.annotations.Path;
+import javapi.annotations.Post;
+import javapi.annotations.Query;
+import javapi.annotations.Route;
 
-@route("/api")
+@Route("/api")
 public class OpenApiController {
 
-    @get("/hello")
-    public String hello(@query("name") @optional String name) {
+    @Get("/hello")
+    public String hello(@Query("name") @Optional String name) {
         return "hi " + (name == null ? "" : name);
     }
 
-    @get("/:id")
-    public Map<String, Object> get(@path int id) {
+    @Get("/:id")
+    public Map<String, Object> get(@Path int id) {
         return Map.of("id", id);
     }
 
-    @post("/create")
-    public Map<String, Object> create(@body Thing thing) {
+    @Post("/create")
+    public Map<String, Object> create(@Body Thing thing) {
         return Map.of("ok", true, "name", thing.name());
     }
 }

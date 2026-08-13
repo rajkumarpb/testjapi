@@ -2,17 +2,17 @@ package javapi.phase8testroutes;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import javapi.annotations.file;
-import javapi.annotations.form;
-import javapi.annotations.post;
+import javapi.annotations.File;
+import javapi.annotations.Form;
+import javapi.annotations.Post;
 import javapi.params.UploadedFile;
 
 public class UploadController {
 
-    @post("/upload")
+    @Post("/upload")
     public Map<String, Object> upload(
-            @form("note") String note,
-            @file("document") UploadedFile document) {
+            @Form("note") String note,
+            @File("document") UploadedFile document) {
         return Map.of(
                 "note", note,
                 "filename", document.filename(),

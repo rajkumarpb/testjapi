@@ -2,19 +2,19 @@ package javapi.phase8routes;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import javapi.annotations.file;
-import javapi.annotations.form;
-import javapi.annotations.get;
-import javapi.annotations.post;
-import javapi.annotations.value;
+import javapi.annotations.File;
+import javapi.annotations.Form;
+import javapi.annotations.Get;
+import javapi.annotations.Post;
+import javapi.annotations.Value;
 import javapi.params.UploadedFile;
 
 public class UploadController {
 
-    @post("/upload")
+    @Post("/upload")
     public Map<String, Object> upload(
-            @form("note") String note,
-            @file("document") UploadedFile document) {
+            @Form("note") String note,
+            @File("document") UploadedFile document) {
         return Map.of(
                 "note", note,
                 "filename", document.filename(),
@@ -23,8 +23,8 @@ public class UploadController {
                 "text", new String(document.content(), StandardCharsets.UTF_8));
     }
 
-    @get("/config")
-    public Map<String, Object> config(@value("feature.flag") boolean flag) {
+    @Get("/config")
+    public Map<String, Object> config(@Value("feature.flag") boolean flag) {
         return Map.of("flag", flag);
     }
 }

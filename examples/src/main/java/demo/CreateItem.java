@@ -1,6 +1,6 @@
 package demo;
 
-import javapi.annotations.optional;
+import javapi.annotations.Optional;
 
-public record CreateItem(String name, int quantity, @optional String supplierEmail) {
+public record CreateItem(String name, int quantity, @Optional String supplierEmail) {
 }

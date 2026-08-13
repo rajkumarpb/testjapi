@@ -1,11 +1,11 @@
 package demo;
 
-import javapi.annotations.get;
+import javapi.annotations.Get;
 import javapi.sse.SseEmitter;
 
 public class StreamController {
 
-    @get("/stream")
+    @Get("/stream")
     public SseEmitter stream() {
         SseEmitter emitter = SseEmitter.create();
         Thread.ofVirtual().start(() -> {

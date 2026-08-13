@@ -1,27 +1,27 @@
 package javapi.execroutes;
 
 import java.util.Map;
-import javapi.annotations.blocking;
-import javapi.annotations.eventloop;
-import javapi.annotations.get;
-import javapi.annotations.route;
+import javapi.annotations.Blocking;
+import javapi.annotations.EventLoop;
+import javapi.annotations.Get;
+import javapi.annotations.Route;
 
-@route("/exec")
+@Route("/exec")
 public class ExecController {
 
-    @get("/fast")
-    @eventloop
+    @Get("/fast")
+    @EventLoop
     public Map<String, String> fast() {
         return Map.of("mode", "eventloop");
     }
 
-    @get("/slow")
-    @blocking
+    @Get("/slow")
+    @Blocking
     public Map<String, String> slow() {
         return Map.of("mode", "blocking");
     }
 
-    @get("/auto")
+    @Get("/auto")
     public Map<String, String> auto() {
         return Map.of("mode", "auto");
     }

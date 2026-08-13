@@ -6,7 +6,7 @@ chapter also covers the two ways to control *where* your handler runs.
 > **What you'll learn**
 >
 > - Returning an `SseEmitter` from a route
-> - `@eventloop` vs `@blocking` execution modes
+> - `@EventLoop` vs `@Blocking` execution modes
 > - Returning `CompletableFuture` for genuinely async handlers
 
 ## Server-Sent Events
@@ -16,7 +16,7 @@ Return an `SseEmitter` and push events with `send`, `event`, or `comment`:
 ```java
 import javapi.sse.SseEmitter;
 
-@get("/ticker")
+@Get("/ticker")
 public SseEmitter ticker() {
     SseEmitter emitter = SseEmitter.create();
     emitter.event("tick", "1");              // event: tick / data: 1
@@ -32,7 +32,7 @@ The emitter buffers events until the response attaches, then flushes them; a
 handler can also keep the connection open and emit from another thread:
 
 ```java
-@get("/clock")
+@Get("/clock")
 public SseEmitter clock() {
     SseEmitter emitter = SseEmitter.create();
     var timer = new java.util.concurrent.ScheduledThreadPoolExecutor(1);
@@ -59,17 +59,17 @@ Routes dispatch to a **virtual thread per request** by default, so blocking code
 server. You can opt out with two annotations:
 
 ```java
-import javapi.annotations.eventloop;
-import javapi.annotations.blocking;
+import javapi.annotations.EventLoop;
+import javapi.annotations.Blocking;
 
-@get("/inline")
-@eventloop
+@Get("/inline")
+@EventLoop
 public Map<String, String> inline() {
     return Map.of("mode", "eventloop");   // runs on the Netty event loop — never block!
 }
 
-@get("/cpu-heavy")
-@blocking
+@Get("/cpu-heavy")
+@Blocking
 public Map<String, String> heavy() {
     return Map.of("mode", "blocking");    // forced off the event loop
 }
@@ -77,12 +77,12 @@ public Map<String, String> heavy() {
 
 Rules of thumb:
 
-- **`@eventloop`** — pure CPU, no IO, no locking. Fastest for hot endpoints;
-  the benchmark app sets `eventLoopInline(true)` so `@eventloop` routes skip the
+- **`@EventLoop`** — pure CPU, no IO, no locking. Fastest for hot endpoints;
+  the benchmark app sets `eventLoopInline(true)` so `@EventLoop` routes skip the
   thread handoff entirely.
-- **`@blocking`** — explicit, in case automatic detection isn't what you want.
+- **`@Blocking`** — explicit, in case automatic detection isn't what you want.
 - **Default** — blocking-safe via virtual threads. Never touch JDBC or blocking
-  IO from an `@eventloop` handler.
+  IO from an `@EventLoop` handler.
 
 ## Returning futures
 
@@ -90,7 +90,7 @@ Handlers may also return a `CompletableFuture` / `CompletionStage` / `Future`;
 javapi awaits it and serializes the result:
 
 ```java
-@get("/future")
+@Get("/future")
 public CompletableFuture<Map<String, String>> future() {
     return CompletableFuture.supplyAsync(() -> Map.of("async", "true"));
 }

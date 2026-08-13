@@ -5,15 +5,15 @@ javapi wires them up from plain annotations.
 
 > **What you'll learn**
 >
-> - Controller classes, `@route` prefixes, verb annotations
-> - Path segments with `:name` and typed `@path` parameters
+> - Controller classes, `@Route` prefixes, verb annotations
+> - Path segments with `:name` and typed `@Path` parameters
 > - How `scan(...)` registers everything in one call
 > - Programmatic routes for quick, one-off endpoints
 
 ## Controllers and routes
 
-A controller is any class with a `@route` annotation and methods annotated with
-a verb (`@get`, `@post`, `@put`, `@delete`, `@patch`). The class-level `@route`
+A controller is any class with a `@Route` annotation and methods annotated with
+a verb (`@Get`, `@Post`, `@Put`, `@Delete`, `@Patch`). The class-level `@Route`
 is a path prefix; each method adds its own path.
 
 ```java
@@ -23,20 +23,20 @@ import java.util.List;
 import java.util.Map;
 import javapi.annotations.*;
 
-@route("/items")
+@Route("/items")
 public class ItemController {
 
-    @get("/")
+    @Get("/")
     public List<String> list() {
         return List.of("alpha", "beta", "gamma");
     }
 
-    @get("/:itemId")
-    public Map<String, Object> item(@path int itemId) {
+    @Get("/:itemId")
+    public Map<String, Object> item(@Path int itemId) {
         return Map.of("itemId", itemId);
     }
 
-    @post
+    @Post
     public Map<String, String> create() {
         return Map.of("created", "true");
     }
@@ -65,15 +65,15 @@ that package, reads the annotations, and wires up the routes:
 
 ## Path segments
 
-Named segments use `:name` in the route pattern and are bound with `@path`:
+Named segments use `:name` in the route pattern and are bound with `@Path`:
 
 ```java
-@get("/:itemId")
-public Map<String, Object> item(@path int itemId) { ... }
+@Get("/:itemId")
+public Map<String, Object> item(@Path int itemId) { ... }
 ```
 
-The bound value is converted to the parameter's type. `@path String itemId`,
-`@path long id`, and `@path UUID id` all work — a bad value produces a `422`
+The bound value is converted to the parameter's type. `@Path String itemId`,
+`@Path long id`, and `@Path UUID id` all work — a bad value produces a `422`
 with a JSON error body.
 
 ## Programmatic routes

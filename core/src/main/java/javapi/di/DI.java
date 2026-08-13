@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javapi.annotations.component;
-import javapi.annotations.inject;
+import javapi.annotations.Component;
+import javapi.annotations.Inject;
 import javapi.request.Request;
 
 public final class DI {
@@ -96,7 +96,7 @@ public final class DI {
         if (binding != null) {
             return binding;
         }
-        if (type.isAnnotationPresent(component.class)) {
+        if (type.isAnnotationPresent(Component.class)) {
             registerComponent(type);
             return bindings.get(type);
         }
@@ -117,7 +117,7 @@ public final class DI {
         try {
             Constructor<?> chosen = null;
             for (Constructor<?> ctor : type.getDeclaredConstructors()) {
-                if (ctor.isAnnotationPresent(inject.class)) {
+                if (ctor.isAnnotationPresent(Inject.class)) {
                     chosen = ctor;
                     break;
                 }
@@ -134,13 +134,13 @@ public final class DI {
             throw e;
         } catch (ReflectiveOperationException e) {
             throw new DependencyException("Cannot instantiate component " + type.getName()
-                    + " (needs a public no-arg constructor or an @inject constructor)", e);
+                    + " (needs a public no-arg constructor or an @Inject constructor)", e);
         }
     }
 
     private static DependencyException unresolved(Class<?> type) {
         return new DependencyException("No binding for " + type.getName()
-                + " — register it with .component(...) or annotate it @component");
+                + " — register it with .component(...) or annotate it @Component");
     }
 
     public static final class Context {

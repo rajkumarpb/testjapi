@@ -1,12 +1,12 @@
 package javapi.ditestroutes;
 
-import javapi.annotations.inject;
+import javapi.annotations.Inject;
 
 public class Counter {
 
     private final Greeter greeter;
 
-    @inject
+    @Inject
     public Counter(Greeter greeter) {
         this.greeter = greeter;
     }

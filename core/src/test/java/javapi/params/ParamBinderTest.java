@@ -7,58 +7,58 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import javapi.annotations.body;
-import javapi.annotations.cookie;
-import javapi.annotations.header;
-import javapi.annotations.min;
-import javapi.annotations.minlength;
-import javapi.annotations.maxlength;
-import javapi.annotations.optional;
-import javapi.annotations.path;
-import javapi.annotations.query;
+import javapi.annotations.Body;
+import javapi.annotations.Cookie;
+import javapi.annotations.Header;
+import javapi.annotations.Min;
+import javapi.annotations.MinLength;
+import javapi.annotations.MaxLength;
+import javapi.annotations.Optional;
+import javapi.annotations.Path;
+import javapi.annotations.Query;
 import javapi.request.Request;
 
 class ParamBinderTest {
 
     static class Targets {
 
-        public String item(@path("id") int id, @query("q") @optional String q) {
+        public String item(@Path("id") int id, @Query("q") @Optional String q) {
             return id + ":" + q;
         }
 
-        public String named(@query String name, @header("X-Token") String token, @cookie("session") String session) {
+        public String named(@Query String name, @Header("X-Token") String token, @Cookie("session") String session) {
             return name + ":" + token + ":" + session;
         }
 
-        public String body(@body Payload payload) {
+        public String body(@Body Payload payload) {
             return payload.name();
         }
 
-        public String optionalBody(@body @optional Payload payload) {
+        public String optionalBody(@Body @Optional Payload payload) {
             return payload == null ? "none" : payload.name();
         }
 
-        public String mandatory(@path("id") int id, @query("name") String name) {
+        public String mandatory(@Path("id") int id, @Query("name") String name) {
             return id + ":" + name;
         }
 
-        public String badNumber(@path("id") int id) {
+        public String badNumber(@Path("id") int id) {
             return String.valueOf(id);
         }
 
-        public String badEnum(@query("level") Level level) {
+        public String badEnum(@Query("level") Level level) {
             return level.name();
         }
 
-        public String constrained(@query("q") @minlength(3) @maxlength(5) String q) {
+        public String constrained(@Query("q") @MinLength(3) @MaxLength(5) String q) {
             return q;
         }
 
-        public String constrainedInt(@path("id") @min(5) int id) {
+        public String constrainedInt(@Path("id") @Min(5) int id) {
             return String.valueOf(id);
         }
 
-        public String constrainedBody(@body Payload payload) {
+        public String constrainedBody(@Body Payload payload) {
             return payload.name();
         }
     }
@@ -67,7 +67,7 @@ class ParamBinderTest {
         LOW, HIGH
     }
 
-    record Payload(@minlength(2) String name, int qty) {
+    record Payload(@MinLength(2) String name, int qty) {
     }
 
     private static Method find(String name) {
